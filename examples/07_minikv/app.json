@@ -1,0 +1,5 @@
+[
+  { "id": "store", "module": "./plugins/store.py", "config": { "max_keys": 3 } },
+  { "id": "api",   "module": "./plugins/api.py",   "config": { "port": 0 } },
+  { "id": "audit", "module": "./plugins/audit.py" }
+]

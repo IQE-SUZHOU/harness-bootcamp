@@ -1,0 +1,5 @@
+[
+  { "id": "clock",  "module": "./plugins/clock.py" },
+  { "id": "ticker", "module": "./plugins/ticker.py", "config": { "ticks": 3 } },
+  { "id": "legacy", "module": "./plugins/legacy.py", "disabled": true }
+]
