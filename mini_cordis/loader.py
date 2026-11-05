@@ -56,7 +56,9 @@ class LoaderService:
         path = os.path.abspath(path)
         base_dir = os.path.dirname(path)
         with open(path, encoding='utf-8') as f:
-            entries = json.load(f)
+            doc = json.load(f)
+        # 兼容两种清单形状：裸列表 [...] 或对象 {"plugins": [...], 其他元数据}
+        entries = doc.get('plugins', []) if isinstance(doc, dict) else doc
         fibers = []
         for entry in entries:
             if entry.get('disabled'):

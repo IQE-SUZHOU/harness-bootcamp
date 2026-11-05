@@ -155,6 +155,14 @@ class Sandbox(Service):
                 pass
             raw_out, raw_err = b'', b''
             await proc.wait()
+        except asyncio.CancelledError:
+            # agent 中断传导到进行中的工具：击杀子进程组后再上抛，不泄漏
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            await proc.wait()
+            raise
 
         stdout, t1 = _truncate(raw_out.decode('utf-8', 'replace'), self.max_output)
         stderr, t2 = _truncate(raw_err.decode('utf-8', 'replace'), self.max_output)

@@ -1,4 +1,4 @@
-"""mini-harness 四插件（session/sandbox/agent-loop/bash）验收测试。"""
+"""mini-harness（profile 装配的插件组合）验收测试。"""
 
 import asyncio
 import json
@@ -13,27 +13,21 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from mini_cordis import Context  # noqa: E402
+from run import prepare_profile  # noqa: E402
 
 
-async def boot(tmp: pathlib.Path, sandbox_cfg=None, agent_cfg=None):
-    """按 loader 方式装配四插件（与真实部署同路径）。"""
-    workspace = tmp / 'workspace'
-    workspace.mkdir(exist_ok=True)
-    cfg = [
-        {'id': 'session', 'module': str(ROOT / 'plugins' / 'session.py'),
-         'config': {'dir': str(tmp / 'sessions')}},
-        {'id': 'sandbox', 'module': str(ROOT / 'plugins' / 'sandbox.py'),
-         'config': sandbox_cfg or {'root': str(workspace), 'timeout_s': 10}},
-        {'id': 'llm', 'module': str(ROOT / 'plugins' / 'llm.py'),
-         'config': {'driver': 'fake'}},
-        {'id': 'agent-loop', 'module': str(ROOT / 'plugins' / 'agent_loop.py'),
-         'config': agent_cfg or {}},
-        {'id': 'bash', 'module': str(ROOT / 'plugins' / 'bash.py'), 'config': {}},
-    ]
-    path = tmp / 'app.json'
-    path.write_text(json.dumps(cfg), encoding='utf-8')
+async def boot(tmp: pathlib.Path, sandbox_cfg=None, agent_cfg=None,
+               profile='base', extra_overrides=()):
+    """走与真实启动完全相同的路径：profile → effective.json → loader。"""
+    overrides = ['llm.driver="fake"']
+    for k, v in (sandbox_cfg or {}).items():
+        overrides.append(f'sandbox.{k}={json.dumps(v)}')
+    for k, v in (agent_cfg or {}).items():
+        overrides.append(f'agent-loop.{k}={json.dumps(v)}')
+    overrides += list(extra_overrides)
+    eff = prepare_profile(profile, data_dir=str(tmp), overrides=overrides)
     root = Context()
-    await root.loader.load(str(path))
+    await root.loader.load(str(eff))
     return root
 
 
@@ -83,8 +77,7 @@ class MiniHarnessTest(unittest.IsolatedAsyncioTestCase):
     # ------------------------------------------------------------ sandbox
 
     async def test_sandbox_readonly_denies(self):
-        root = await boot(self.tmp, sandbox_cfg={
-            'root': str(self.tmp / 'ws1'), 'mode': 'read-only'})
+        root = await boot(self.tmp, sandbox_cfg={'mode': 'read-only'})
         try:
             r = await root.get('agent').chat('run: echo should-not-run')
             assert '拒绝' in r['final'] and 'should-not-run' not in r['final']
@@ -114,8 +107,7 @@ class MiniHarnessTest(unittest.IsolatedAsyncioTestCase):
         await root.fiber.shutdown()
 
     async def test_sandbox_output_truncation(self):
-        root = await boot(self.tmp, sandbox_cfg={
-            'root': str(self.tmp / 'ws2'), 'max_output': 256})
+        root = await boot(self.tmp, sandbox_cfg={'max_output': 256})
         r = await root.get('sandbox').exec('seq 1 20000')
         assert r['truncated'] is True and len(r['stdout']) < 600
         assert '已截断' in r['stdout']

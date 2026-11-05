@@ -1,0 +1,9 @@
+{
+  "name": "web",
+  "extends": "base",
+  "mode": "serve",
+  "plugins": [
+    {"id": "webui", "module": "plugins/webui.py",
+     "config": {"host": "127.0.0.1", "port": 8899}}
+  ]
+}

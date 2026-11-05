@@ -1,0 +1,8 @@
+{
+  "name": "demo",
+  "extends": "base",
+  "mode": "demo",
+  "plugins": [
+    {"id": "llm", "config": {"driver": "fake"}}
+  ]
+}

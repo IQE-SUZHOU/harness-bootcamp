@@ -78,48 +78,93 @@ class Agent(Service):
         self.tools = ToolRegistry(ctx)          # provide='tools'
         self.llm = ctx.llm                      # 契约：chat(messages, tools)→message
         # 测试 seam：可直接给实例赋假驱动覆盖 self.llm
+        self._task = None
 
-    async def chat(self, user_msg: str = None) -> dict:
-        """一轮用户输入 → 若干工具往返 → 最终文本。全程持久化到 session。"""
+    async def chat(self, user_msg: str = None, session=None) -> dict:
+        """一轮用户输入 → 若干工具往返 → 最终文本。全程持久化到 session。
+
+        session 显式传入 Session 对象；缺省用 ctx.session.current()。
+        循环跑在独立 task 中，agent.interrupt() 可安全中止：
+        内层捕获 CancelledError → 落 interrupted 标记 + 修补 dangling tool_calls。
+        """
+        if self._task is not None and not self._task.done():
+            raise RuntimeError('agent: 上一轮尚未结束，先 interrupt() 或等待完成')
+        if session is not None:
+            self.ctx.session.attach(session)
+        task = asyncio.ensure_future(self._chat_inner(user_msg))
+        self._task = task
+        try:
+            return await task
+        finally:
+            self._task = None
+
+    def interrupt(self) -> bool:
+        """中断进行中的一轮对话；返回是否确有任务被取消。"""
+        if self._task is not None and not self._task.done():
+            self._task.cancel()
+            return True
+        return False
+
+    async def _chat_inner(self, user_msg) -> dict:
         sess = self.ctx.session.current()
-        if user_msg is not None:
-            sess.append({'role': 'user', 'content': user_msg})
-        self.ctx.emit('agent/turn-started', sess.id)
-
         turns = 0
-        while turns < self.max_turns:
-            turns += 1
-            messages = ([{'role': 'system', 'content': self.system}]
-                        + sess.api_messages())
-            resp = await self.llm.chat(messages, self.tools.schemas())
+        try:
+            if user_msg is not None:
+                sess.append({'role': 'user', 'content': user_msg})
+            self.ctx.emit('agent/turn-started', sess.id)
 
-            tool_calls = resp.get('tool_calls')
-            if tool_calls:
-                # 助手消息（含 tool_calls）先入会话，保持 API 因果序
-                sess.append({'role': resp.get('role', 'assistant'),
-                             'content': resp.get('content'),
-                             'tool_calls': tool_calls})
-                for tc in tool_calls:
-                    fn = tc.get('function', {})
-                    try:
-                        args = json.loads(fn.get('arguments') or '{}')
-                    except json.JSONDecodeError:
-                        args = {}
-                    result = await self.tools.call(fn.get('name', ''), args)
-                    sess.append({'role': 'tool', 'tool_call_id': tc.get('id'),
-                                 'content': result})
-                    self.ctx.emit('agent/tool', sess.id, fn.get('name'), tc.get('id'))
-                continue
+            while turns < self.max_turns:
+                turns += 1
+                messages = ([{'role': 'system', 'content': self.system}]
+                            + sess.api_messages())
+                resp = await self.llm.chat(messages, self.tools.schemas())
 
-            content = resp.get('content') or ''
-            sess.append({'role': 'assistant', 'content': content})
+                tool_calls = resp.get('tool_calls')
+                if tool_calls:
+                    # 助手消息（含 tool_calls）先入会话，保持 API 因果序
+                    sess.append({'role': resp.get('role', 'assistant'),
+                                 'content': resp.get('content'),
+                                 'tool_calls': tool_calls})
+                    for tc in tool_calls:
+                        fn = tc.get('function', {})
+                        try:
+                            args = json.loads(fn.get('arguments') or '{}')
+                        except json.JSONDecodeError:
+                            args = {}
+                        result = await self.tools.call(fn.get('name', ''), args)
+                        sess.append({'role': 'tool', 'tool_call_id': tc.get('id'),
+                                     'content': result})
+                        self.ctx.emit('agent/tool', sess.id, fn.get('name'), tc.get('id'))
+                    continue
+
+                content = resp.get('content') or ''
+                sess.append({'role': 'assistant', 'content': content})
+                self.ctx.emit('agent/finished', sess.id, turns)
+                return {'final': content, 'turns': turns, 'aborted': False}
+
+            msg = f'[aborted] 达到 max_turns={self.max_turns}，循环熔断'
+            sess.append({'role': 'assistant', 'content': msg})
             self.ctx.emit('agent/finished', sess.id, turns)
-            return {'final': content, 'turns': turns, 'aborted': False}
+            return {'final': msg, 'turns': turns, 'aborted': True}
+        except asyncio.CancelledError:
+            # 中断不是错误：安全收尾后以正常结果返回，调用方拿到 interrupted
+            self._mark_interrupted(sess, '[已中断]')
+            self.ctx.emit('agent/interrupted', sess.id)
+            return {'final': '[已中断]', 'turns': turns, 'aborted': False,
+                    'interrupted': True}
+        except Exception:
+            # LLM 故障等：同样落中断标记 + 修补，异常继续上抛给调用方
+            self._mark_interrupted(sess, '[执行失败]')
+            raise
 
-        msg = f'[aborted] 达到 max_turns={self.max_turns}，循环熔断'
-        sess.append({'role': 'assistant', 'content': msg})
-        self.ctx.emit('agent/finished', sess.id, turns)
-        return {'final': msg, 'turns': turns, 'aborted': True}
+    @staticmethod
+    def _mark_interrupted(sess, reason: str):
+        try:
+            sess.patch_dangling(reason)
+            if sess.status != 'closed':
+                sess.mark('interrupted')
+        except Exception:  # noqa: BLE001 —— 收尾尽力而为，不掩盖原始异常
+            pass
 
 
 plugin = Agent

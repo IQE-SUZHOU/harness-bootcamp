@@ -76,17 +76,44 @@ python3 examples/05_config.py       # 配置校验/失败隔离/热更新/interc
 python3 examples/06_loader/app.py   # JSON 配置装配 + disabled + reload
 python3 examples/07_minikv/app.py   # 综合应用：TCP KV 服务（逐出/审计/热卸载）
 python3 examples/08_workspace/app.py # 在运行时之上装配 workspace 业务插件
-python3 examples/09_miniharness/app.py # 最小可运行 harness（四插件，离线可跑）
 python3 tests/test_runtime.py       # 17 个语义验收测试
 python3 tests/test_workspace.py     # workspace 插件 5 项验收测试
-python3 tests/test_miniharness.py   # mini-harness 四插件 11 项验收测试
+python3 tests/test_miniharness.py   # mini-harness（profile 装配）11 项验收测试
 python3 tests/test_llm_plugin.py    # llm 插件 7 项验收测试
-python3 -m unittest discover -s tests -t .   # 一次跑全部（40 项）
+python3 tests/test_session_lifecycle.py  # 会话完整生命周期 6 项
+python3 tests/test_webui.py         # webui 插件 5 项（HTTP/SSE/中断/单飞）
+python3 -m unittest discover -s tests -t .   # 一次跑全部（51 项）
 ```
 
 07 是唯一"像真应用"的示例：loader 装配 store（Service+Config 校验+FIFO 逐出）
 → api（inject 依赖 + asyncio TCP 服务器，卸载自动关端口）→ audit（纯事件监听），
 宿主连上做协议演示后热卸载 api、优雅停机。
+
+## mini-harness：按 profile 启动（run.py）
+
+插件组合由 profile 决定，不再写死在某个示例脚本里：
+
+```bash
+python3 run.py                                  # demo profile：离线脚本演示+恢复
+python3 run.py -p chat                          # 交互 REPL（/i 中断 /new /list /quit）
+python3 run.py -p chat --prompt "run: ls"       # 单次提问
+python3 run.py -p web                           # Web UI（默认 http://127.0.0.1:8899）
+python3 run.py -p web --fake --port 0           # 覆盖插件配置（--set id.key=value 通用）
+python3 run.py -p readonly --prompt "run: echo hi"  # 只读沙箱组合
+```
+
+| profile | 组合 | mode |
+|---------|------|------|
+| base    | session+sandbox+llm+agent-loop+bash | chat |
+| demo    | base，llm=fake | demo（脚本演示+跨进程恢复） |
+| chat    | = base | chat（REPL） |
+| web     | base + webui | serve |
+| web-fake| web，llm=fake | serve |
+| readonly| base，sandbox=read-only | chat |
+
+profile 机制：`"extends"` 继承（plugins 按 id 深合并，`remove:true` 删除）、
+`{data}` 占位符 → 数据目录（默认 `.data/<profile>/`）、`--set id.key=value` 通用覆盖。
+合并结果写 `<data>/effective.json`，可脱离 profile 直接 `loader.load()` 复跑。
 
 ## 与 cordis 的有意差异（最小化取舍）
 
@@ -105,27 +132,36 @@ python3 -m unittest discover -s tests -t .   # 一次跑全部（40 项）
 
 ```
 mini_cordis/     运行时（9 个模块 ≈1300 行，注释齐全）
+run.py           mini-harness 启动器：按 profiles/ 装配插件组合（demo/chat/serve）
+profiles/        base / demo / chat / web / web-fake / readonly（extends 继承+深合并）
 plugins/         运行时之上的业务插件（不属 cordis 核心）：
                    workspace.py    —— DSH @dsh/workspace（ctx.workspaceRegistry）最小移植
-                   session.py      —— 会话持久化（JSONL 消息流，重启可恢复）
+                   session.py      —— 会话完整生命周期（v2）：append-only JSONL，
+                                       active/interrupted/closed 状态机（meta 行 last-wins）、
+                                       崩溃半行丢弃、dangling tool_calls 修补、closed 终态
+                   session_types.py—— 跨模块共享异常（loader 路径加载 vs 包导入的类身份）
                    sandbox.py      —— 执行环境限制：三模式/命令黑名单/cwd 钉住/环境清洗/
-                                      超时杀进程组/输出截断（策略层，非内核隔离）
+                                      超时·取消杀进程组/输出截断（策略层，非内核隔离）
                    llm.py          —— LLM 接入：直接消费本机 DSH 配置
                                       （~/.dsh/settings.yaml 的 llm-pi-ai.providers +
                                       agent-default-model，零依赖 YAML 子集解析，密钥掩码）；
                                       auto/dsh/openai(env)/fake 四级驱动
-                   agent_loop.py   —— LLM 会话循环 + tools 注册表（只依赖 ctx.llm 契约）
+                   agent_loop.py   —— LLM 会话循环 + tools 注册表（只依赖 ctx.llm 契约）；
+                                       chat 跑在独立 task，interrupt() 可安全中断并落盘
                    bash.py         —— bash 工具：经 sandbox 执行，拒绝/超时转为工具文案
-examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace；09 最小 harness
-tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 33 项）
+                   webui.py        —— Web 界面（零依赖 asyncio HTTP）：会话侧栏+聊天+
+                                       SSE 事件流+中断按钮；port=0 支持随机端口
+examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace
+tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 51 项）
 ```
 
-## 最小 harness（examples/09）
+## 最小 harness（run.py + profiles/）
 
 五插件即插即成的最小 agent 运行时，装配顺序即依赖序：
 
 ```
 session → sandbox → llm(ctx.llm) → agent-loop(provide tools) → bash(注册 bash 工具)
+（web profile 再 + webui）
 ```
 
 ```
@@ -139,5 +175,13 @@ session → sandbox → llm(ctx.llm) → agent-loop(provide tools) → bash(注�
   其次 `OPENAI_API_KEY`/`OPENAI_BASE_URL` 环境变量 → 都不可用则 fake 驱动离线跑通全链路；
   `--fake` 可强制离线。已实测用本机 DSH 默认 Qwen 端点跑完整工具循环
 - sandbox 实测拦截 `sudo rm -rf /`、fork 炸弹、`shutdown`；环境清洗防密钥外泄；
-  超时 SIGKILL 整个进程组；stdout/stderr 各限 32KB（可配）
-- 会话 JSONL 落盘，新进程 `session.open(id)` 无损续聊
+  超时/取消均 SIGKILL 整个进程组；stdout/stderr 各限 32KB（可配）
+- **会话完整生命周期**：创建 → 运行 → 中断 → 恢复 → 结束
+  - JSONL append-only；状态以 meta 行追加（last-wins），closed 为终态拒写
+  - 崩溃恢复：尾部半行丢弃；文件状态 active 而无人持有 → 判 interrupted；
+    assistant 带 tool_calls 而 tool 响应缺失 → 补合成响应，保证消息序列 API 合法
+  - `agent.interrupt()` 取消进行中的 LLM 请求/工具执行（子进程一并击杀），
+    现场修补后以 `{'interrupted': True}` 正常返回；续聊自动回到 active
+- **Web UI**（`run.py -p web`）：零依赖 stdlib HTTP + 单页原生 JS；会话侧栏
+  （状态徽标/新建/打开/结束）、聊天面板（工具调用可视化）、SSE 实时事件流、
+  中断按钮；单飞约束（并发聊天返回 409）

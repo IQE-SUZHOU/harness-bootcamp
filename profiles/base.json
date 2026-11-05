@@ -1,0 +1,16 @@
+{
+  "name": "base",
+  "mode": "chat",
+  "plugins": [
+    {"id": "session", "module": "plugins/session.py",
+     "config": {"dir": "{data}/sessions"}},
+    {"id": "sandbox", "module": "plugins/sandbox.py",
+     "config": {"mode": "workspace-write", "root": "{data}/workspace",
+                "timeout_s": 20, "max_output": 4096}},
+    {"id": "llm", "module": "plugins/llm.py",
+     "config": {"driver": "auto"}},
+    {"id": "agent-loop", "module": "plugins/agent_loop.py",
+     "config": {"max_turns": 8}},
+    {"id": "bash", "module": "plugins/bash.py", "config": {}}
+  ]
+}

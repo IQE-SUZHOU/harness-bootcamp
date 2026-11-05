@@ -1,0 +1,8 @@
+{
+  "name": "readonly",
+  "extends": "base",
+  "mode": "chat",
+  "plugins": [
+    {"id": "sandbox", "config": {"mode": "read-only"}}
+  ]
+}

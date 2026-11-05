@@ -1,0 +1,7 @@
+{
+  "name": "web-fake",
+  "extends": "web",
+  "plugins": [
+    {"id": "llm", "config": {"driver": "fake"}}
+  ]
+}
