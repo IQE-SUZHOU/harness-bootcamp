@@ -1,0 +1,72 @@
+[
+  {
+    "id": "F01",
+    "description": "入口文件是目录页：AGENTS.md 存在、必需小节齐、行数 ≤100、硬约束 ≤15 条",
+    "verification": "make contract",
+    "status": "passing",
+    "evidence": "2026-11-05 make contract rc=0；AGENTS.md 54 行 / 硬约束 11 条 / 5 小节齐"
+  },
+  {
+    "id": "F02",
+    "description": "路由表无死链：AGENTS.md 指向的 docs/ src/ scripts/ 路径全部存在，且 docs/ 下无孤儿文档",
+    "verification": "make contract",
+    "status": "passing",
+    "evidence": "2026-11-05 make contract rc=0；11 条路由全部可达，docs/ 无孤儿文档"
+  },
+  {
+    "id": "F03",
+    "description": "功能清单状态机：状态枚举合法、WIP=1、passing 必须绑定真实验证入口与证据",
+    "verification": "make test",
+    "status": "passing",
+    "evidence": "2026-11-05 make test rc=0；test_feature_list.py 8 例覆盖状态枚举、WIP=1、空口 passing 拒绝"
+  },
+  {
+    "id": "F04",
+    "description": "交接工件校验：PROGRESS.md 六小节完备且含可解析 commit，DECISIONS.md 每条含原因与否决方案",
+    "verification": "make test",
+    "status": "passing",
+    "evidence": "2026-11-05 make test rc=0；test_continuity.py 覆盖缺小节、占位文本、commit 缺失、否决方案缺失"
+  },
+  {
+    "id": "F05",
+    "description": "门禁可咬人：负向自测四种坏输入全部被拒（行数超限、空口 passing、空 PROGRESS、rc≠0 仍升级）",
+    "verification": "make audit",
+    "status": "passing",
+    "evidence": "2026-11-05 make audit rc=0；check_contract.py --negative-selftest 四种坏输入全部被拒"
+  },
+  {
+    "id": "F06",
+    "description": "全新会话测试 5/5：只看仓库能回答五个基本问题",
+    "verification": "make quiz",
+    "status": "passing",
+    "evidence": "2026-11-05 make quiz rc=0；5/5，知识可见性缺口 0%"
+  },
+  {
+    "id": "F07",
+    "description": "消融实验可逆：逐个移除 instruction/feedback/state 后强制恢复，恢复后基线 rc 一致",
+    "verification": "make ablate",
+    "status": "not_started",
+    "evidence": ""
+  },
+  {
+    "id": "F08",
+    "description": "环境自描述：.python-version 与实际解释器一致，make init 必需项缺失即失败，可选工具只告警",
+    "verification": "make init",
+    "status": "passing",
+    "evidence": "2026-11-05 make init rc=0；python 3.12 匹配 .python-version，ruff/mypy 缺失仅告警"
+  },
+  {
+    "id": "F09",
+    "description": "仓库文件不含密钥特征（sk-/AKIA/PRIVATE KEY/password 赋值）",
+    "verification": "make contract",
+    "status": "passing",
+    "evidence": "2026-11-05 make contract rc=0；密钥扫描步无命中"
+  },
+  {
+    "id": "F10",
+    "description": "会话生命周期接入：make start 在不一致状态拒绝开工，make finish 校验交接完备后才允许收尾",
+    "verification": "make check",
+    "status": "not_started",
+    "evidence": ""
+  }
+]
