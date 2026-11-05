@@ -1,16 +1,31 @@
-# harness-bootcamp
+# Agent_repo
 
-LAI C（Suzhou）Stage 1 五天 Harness 训练营仓库：每人一个分支，各自从骨架开始
-每天加一个能力，最终在自己的分支里完成一个 mini harness。
+Minimal agent-ready repository for D1 · Harness Foundation.
 
-main 分支只做索引，不放代码。
+## Quick start
 
-## 分支
+```bash
+git clone git@github.com:IQE-SUZHOU/Agent_repo.git
+cd Agent_repo
+./scripts/check.sh
+```
 
-| 分支 | 成员 |
-|------|------|
-| [ZX](https://github.com/IQE-SUZHOU/harness-bootcamp/tree/ZX) | zhouxiang |
-| [WCF](https://github.com/IQE-SUZHOU/harness-bootcamp/tree/WCF) | wangchengfu |
-| [CZH](https://github.com/IQE-SUZHOU/harness-bootcamp/tree/CZH) | changziheng |
-| [YZH](https://github.com/IQE-SUZHOU/harness-bootcamp/tree/YZH) | yuanzhihao |
-| [JSD](https://github.com/IQE-SUZHOU/harness-bootcamp/tree/JSD) | jinshuangdong |
+Expected output:
+
+```
+practice repo ok: <absolute path>
+```
+
+## Files
+
+| Path | Purpose |
+| --- | --- |
+| `AGENTS.md` | Agent instructions: layout, commands, conventions, editing rules |
+| `CLAUDE.md` | Symlink to `AGENTS.md` |
+| `scripts/check.sh` | Minimal side-effect-free task |
+| `scope-list.md` | Instruction scopes and precedence |
+| `packages/app/AGENTS.md` | Nested instructions for the app package |
+
+## Scope
+
+All work stays inside this repository. Commands that write outside the repo are out of scope.
