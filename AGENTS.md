@@ -31,8 +31,14 @@ python3 run.py -p web                               # Web UI（:8899；--fake --
 
 ```bash
 cd /home/amd/sut-target-os/harness-bootcamp        # 仓库工作副本（分支 JSD）
-rsync -a --exclude='__pycache__' --exclude='.data' \
-      --exclude='.demo' --exclude='.sessions' \
+# ⚠ 三条铁律（day02 踩过坑）：
+#   1) rsync --delete 必须带 --exclude='.git'，否则删掉 .git 后
+#      git 命令落到上级仓库，后果严重
+#   2) 仓库根的 LICENSE/.gitignore 等文件开发目录里也要有副本，
+#      否则 --delete 会把它们从仓库删掉
+#   3) git add -A 前先 git rev-parse --show-toplevel 确认仓库边界
+rsync -a --delete --exclude='.git' --exclude='__pycache__' \
+      --exclude='.data' --exclude='.demo' --exclude='.sessions' \
       ../harness_learn/ ./                          # 从开发目录同步
 git add -A && git commit -m 'dayNN::<总结>' && git push origin JSD
 ```
