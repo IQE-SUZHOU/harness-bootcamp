@@ -24,8 +24,10 @@ async def boot(tmp: pathlib.Path, sandbox_cfg=None, agent_cfg=None):
          'config': {'dir': str(tmp / 'sessions')}},
         {'id': 'sandbox', 'module': str(ROOT / 'plugins' / 'sandbox.py'),
          'config': sandbox_cfg or {'root': str(workspace), 'timeout_s': 10}},
+        {'id': 'llm', 'module': str(ROOT / 'plugins' / 'llm.py'),
+         'config': {'driver': 'fake'}},
         {'id': 'agent-loop', 'module': str(ROOT / 'plugins' / 'agent_loop.py'),
-         'config': agent_cfg or {'llm': {'driver': 'fake'}}},
+         'config': agent_cfg or {}},
         {'id': 'bash', 'module': str(ROOT / 'plugins' / 'bash.py'), 'config': {}},
     ]
     path = tmp / 'app.json'
@@ -152,7 +154,7 @@ class MiniHarnessTest(unittest.IsolatedAsyncioTestCase):
     # ------------------------------------------------------------ agent-loop
 
     async def test_max_turns_breaker(self):
-        root = await boot(self.tmp, agent_cfg={'max_turns': 3, 'llm': {'driver': 'fake'}})
+        root = await boot(self.tmp, agent_cfg={'max_turns': 3})
         try:
 
             class AlwaysCall:

@@ -80,7 +80,8 @@ python3 examples/09_miniharness/app.py # 最小可运行 harness（四插件，�
 python3 tests/test_runtime.py       # 17 个语义验收测试
 python3 tests/test_workspace.py     # workspace 插件 5 项验收测试
 python3 tests/test_miniharness.py   # mini-harness 四插件 11 项验收测试
-python3 -m unittest discover -s tests -t .   # 一次跑全部（33 项）
+python3 tests/test_llm_plugin.py    # llm 插件 7 项验收测试
+python3 -m unittest discover -s tests -t .   # 一次跑全部（40 项）
 ```
 
 07 是唯一"像真应用"的示例：loader 装配 store（Service+Config 校验+FIFO 逐出）
@@ -109,7 +110,11 @@ plugins/         运行时之上的业务插件（不属 cordis 核心）：
                    session.py      —— 会话持久化（JSONL 消息流，重启可恢复）
                    sandbox.py      —— 执行环境限制：三模式/命令黑名单/cwd 钉住/环境清洗/
                                       超时杀进程组/输出截断（策略层，非内核隔离）
-                   agent_loop.py   —— LLM 会话循环 + tools 注册表（OpenAI 兼容 & fake 驱动）
+                   llm.py          —— LLM 接入：直接消费本机 DSH 配置
+                                      （~/.dsh/settings.yaml 的 llm-pi-ai.providers +
+                                      agent-default-model，零依赖 YAML 子集解析，密钥掩码）；
+                                      auto/dsh/openai(env)/fake 四级驱动
+                   agent_loop.py   —— LLM 会话循环 + tools 注册表（只依赖 ctx.llm 契约）
                    bash.py         —— bash 工具：经 sandbox 执行，拒绝/超时转为工具文案
 examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace；09 最小 harness
 tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 33 项）
@@ -117,10 +122,10 @@ tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 33 项）
 
 ## 最小 harness（examples/09）
 
-四插件即插即成的最小 agent 运行时，装配顺序即依赖序：
+五插件即插即成的最小 agent 运行时，装配顺序即依赖序：
 
 ```
-session → sandbox → agent-loop(provide tools) → bash(注册 bash 工具)
+session → sandbox → llm(ctx.llm) → agent-loop(provide tools) → bash(注册 bash 工具)
 ```
 
 ```
@@ -129,8 +134,10 @@ session → sandbox → agent-loop(provide tools) → bash(注册 bash 工具)
          ↘ tool 结果回写 session → 再问 LLM → … → 纯文本回复（max_turns 熔断）
 ```
 
-- **离线可跑**：无 `OPENAI_API_KEY` 时自动切 fake 驱动，整条 tool-call 循环照跑；
-  设置 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `llm.model` 即对接任意 OpenAI 兼容端点
+- **LLM 驱动自动选择**（llm 插件）：读本机 `~/.dsh/settings.yaml` 的
+  `llm-pi-ai.providers` + `agent-default-model`（本机 DSH 正在用的模型即 harness 的模型）→
+  其次 `OPENAI_API_KEY`/`OPENAI_BASE_URL` 环境变量 → 都不可用则 fake 驱动离线跑通全链路；
+  `--fake` 可强制离线。已实测用本机 DSH 默认 Qwen 端点跑完整工具循环
 - sandbox 实测拦截 `sudo rm -rf /`、fork 炸弹、`shutdown`；环境清洗防密钥外泄；
   超时 SIGKILL 整个进程组；stdout/stderr 各限 32KB（可配）
 - 会话 JSONL 落盘，新进程 `session.open(id)` 无损续聊

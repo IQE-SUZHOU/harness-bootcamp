@@ -30,7 +30,7 @@ DEMO_PROMPTS = [
 ]
 
 
-def make_config(base: pathlib.Path):
+def make_config(base: pathlib.Path, llm_driver: str = 'auto'):
     base.mkdir(parents=True, exist_ok=True)
     workspace = base / 'workspace'
     workspace.mkdir(exist_ok=True)
@@ -40,9 +40,10 @@ def make_config(base: pathlib.Path):
         {'id': 'sandbox', 'module': str(ROOT / 'plugins' / 'sandbox.py'),
          'config': {'mode': 'workspace-write', 'root': str(workspace),
                     'timeout_s': 20, 'max_output': 4096}},
+        {'id': 'llm', 'module': str(ROOT / 'plugins' / 'llm.py'),
+         'config': {'driver': llm_driver}},   # auto：读本机 ~/.dsh/settings.yaml
         {'id': 'agent-loop', 'module': str(ROOT / 'plugins' / 'agent_loop.py'),
-         'config': {'max_turns': 8,
-                    'llm': {'driver': 'auto', 'model': 'gpt-4o-mini'}}},
+         'config': {'max_turns': 8}},
         {'id': 'bash', 'module': str(ROOT / 'plugins' / 'bash.py'),
          'config': {}},
     ]
@@ -55,6 +56,7 @@ async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--prompt', help='单次提问；不给则跑内置演示脚本')
     ap.add_argument('--keep', action='store_true', help='保留会话与 workspace 数据')
+    ap.add_argument('--fake', action='store_true', help='强制离线 fake LLM 驱动')
     args = ap.parse_args()
 
     tmp = pathlib.Path(tempfile.mkdtemp(prefix='mini-harness-'))
@@ -62,10 +64,11 @@ async def main():
     try:
         root = Context()
         log = root.logger('harness')
-        await root.loader.load(str(make_config(keep)))
+        await root.loader.load(str(make_config(keep, 'fake' if args.fake else 'auto')))
 
         agent = root.get('agent')
-        log.info('已注册工具: %s', root.get('tools').names())
+        llm = root.get('llm')
+        log.info('LLM: %s | 已注册工具: %s', llm.info, root.get('tools').names())
 
         prompts = [args.prompt] if args.prompt else DEMO_PROMPTS
         for p in prompts:
