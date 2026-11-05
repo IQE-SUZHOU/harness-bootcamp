@@ -76,9 +76,11 @@ python3 examples/05_config.py       # 配置校验/失败隔离/热更新/interc
 python3 examples/06_loader/app.py   # JSON 配置装配 + disabled + reload
 python3 examples/07_minikv/app.py   # 综合应用：TCP KV 服务（逐出/审计/热卸载）
 python3 examples/08_workspace/app.py # 在运行时之上装配 workspace 业务插件
+python3 examples/09_miniharness/app.py # 最小可运行 harness（四插件，离线可跑）
 python3 tests/test_runtime.py       # 17 个语义验收测试
 python3 tests/test_workspace.py     # workspace 插件 5 项验收测试
-python3 -m unittest discover -s tests -t .   # 一次跑全部（22 项）
+python3 tests/test_miniharness.py   # mini-harness 四插件 11 项验收测试
+python3 -m unittest discover -s tests -t .   # 一次跑全部（33 项）
 ```
 
 07 是唯一"像真应用"的示例：loader 装配 store（Service+Config 校验+FIFO 逐出）
@@ -102,10 +104,33 @@ python3 -m unittest discover -s tests -t .   # 一次跑全部（22 项）
 
 ```
 mini_cordis/     运行时（9 个模块 ≈1300 行，注释齐全）
-plugins/         运行时之上的业务插件示例（不属 cordis 核心）：
-                   workspace.py —— DSH @dsh/workspace（ctx.workspaceRegistry）最小移植：
-                   有序项目/会话、隐藏≠删除、删项目不删会话、mutate 串行化、
-                   JSON 原子持久化、损坏状态 FAILED 隔离
-examples/        01-05 单主题示例；06 loader；07 minikv 综合应用；08 workspace 插件
-tests/           验收测试（unittest.IsolatedAsyncioTestCase）
+plugins/         运行时之上的业务插件（不属 cordis 核心）：
+                   workspace.py    —— DSH @dsh/workspace（ctx.workspaceRegistry）最小移植
+                   session.py      —— 会话持久化（JSONL 消息流，重启可恢复）
+                   sandbox.py      —— 执行环境限制：三模式/命令黑名单/cwd 钉住/环境清洗/
+                                      超时杀进程组/输出截断（策略层，非内核隔离）
+                   agent_loop.py   —— LLM 会话循环 + tools 注册表（OpenAI 兼容 & fake 驱动）
+                   bash.py         —— bash 工具：经 sandbox 执行，拒绝/超时转为工具文案
+examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace；09 最小 harness
+tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 33 项）
 ```
+
+## 最小 harness（examples/09）
+
+四插件即插即成的最小 agent 运行时，装配顺序即依赖序：
+
+```
+session → sandbox → agent-loop(provide tools) → bash(注册 bash 工具)
+```
+
+```
+用户输入 → session 记史 → LLM（带工具 schema）
+         ↘ tool_calls → tools.call → sandbox.exec（策略+限时+限量）
+         ↘ tool 结果回写 session → 再问 LLM → … → 纯文本回复（max_turns 熔断）
+```
+
+- **离线可跑**：无 `OPENAI_API_KEY` 时自动切 fake 驱动，整条 tool-call 循环照跑；
+  设置 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `llm.model` 即对接任意 OpenAI 兼容端点
+- sandbox 实测拦截 `sudo rm -rf /`、fork 炸弹、`shutdown`；环境清洗防密钥外泄；
+  超时 SIGKILL 整个进程组；stdout/stderr 各限 32KB（可配）
+- 会话 JSONL 落盘，新进程 `session.open(id)` 无损续聊
