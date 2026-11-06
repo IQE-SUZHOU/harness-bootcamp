@@ -1,0 +1,8 @@
+{
+  "name": "d04-demo",
+  "extends": "d04",
+  "mode": "graph",
+  "plugins": [
+    {"id": "llm", "config": {"driver": "fake"}}
+  ]
+}

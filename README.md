@@ -85,7 +85,10 @@ python3 tests/test_webui.py         # webui 插件 5 项（HTTP/SSE/中断/单�
 python3 tests/test_gate.py          # gate 验证门禁 5 项（规则/钩子/fail-closed）
 python3 tests/test_checker.py       # checker 独立评审 4 项（fail-closed 三形态）
 python3 tests/test_taskboard.py     # taskboard 台账 8 项（DoD/maker-checker/重试/人工gate）
-python3 -m unittest discover -s tests -t .   # 一次跑全部（68 项）
+python3 tests/test_loopctl.py       # loopctl 循环双保险 5 项（退出条件/轮顶/超时掐表）
+python3 tests/test_graph.py         # graph 可解释路由 6 项（because强制/no_route/失败可见）
+python3 tests/test_fanout.py        # fanout 扇出扇入 6 项（partial三态/并发有界/汇合留证）
+python3 -m unittest discover -s tests -t .   # 一次跑全部（85 项）
 ```
 
 07 是唯一"像真应用"的示例：loader 装配 store（Service+Config 校验+FIFO 逐出）
@@ -105,6 +108,7 @@ python3 run.py -p web --fake --port 0           # 覆盖插件配置（--set id.
 python3 run.py -p readonly --prompt "run: echo hi"  # 只读沙箱组合
 python3 run.py -p d03-demo                          # DoD+maker-checker+重试+人工gate 演示
 python3 run.py -p d03                               # REPL 增加 /task /tasks /review 命令
+python3 run.py -p d04-demo                          # day04 演示：Loop/Graph路由/Fan-out·in/失败传播
 ```
 
 | profile | 组合 | mode |
@@ -117,6 +121,8 @@ python3 run.py -p d03                               # REPL 增加 /task /tasks /
 | readonly| base，sandbox=read-only | chat |
 | d03     | base + gate + checker + taskboard | chat（+ /task 命令） |
 | d03-demo| d03，llm=fake | task（脚本演示：不过→重试→升级） |
+| d04     | d03 + loopctl + graph + fanout（taskboard 加掐表） | chat |
+| d04-demo| d04，llm=fake | graph（脚本演示四概念） |
 
 profile 机制：`"extends"` 继承（plugins 按 id 深合并，`remove:true` 删除）、
 `{data}` 占位符 → 数据目录（默认 `.data/<profile>/`）、`--set id.key=value` 通用覆盖。
@@ -164,8 +170,15 @@ plugins/         运行时之上的业务插件（不属 cordis 核心）：
                                         标准；输出不可解析/调用失败一律判不过（fail-closed）
                     taskboard.py    —— 任务台账（day03）：DoD 可执行验收 + maker-checker 强制
                                         分离 + 有限重试（默认封顶3）升级人工 gate + JSONL 审计
+                                        （day04 补 maker_timeout_s：每轮 maker 掐表）
+                    loopctl.py      —— 循环双保险（day04）：退出条件+轮数顶+超时三道保险，
+                                        reason ∈ exit-condition/max-iters/timeout/error 全可见
+                    graph.py        —— 可解释路由（day04）：边=数据且必带 because，台账回放每次
+                                        命中；no_route 回带规则表；节点失败显式 failed 不吞
+                    fanout.py       —— Fan-out/Fan-in（day04）：分支带状态（ok/异常/超时），
+                                        fan-in 收全量状态，partial 绝不报 success
 examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace
-tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 68 项）
+tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 85 项）
 ```
 
 ## 最小 harness（run.py + profiles/）

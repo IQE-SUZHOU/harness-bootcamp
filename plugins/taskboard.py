@@ -44,10 +44,15 @@ class TaskBoard(Service):
             if not isinstance(mr, int) or mr < 1:
                 issues.append({'message': 'max_retries 必须是 ≥1 的整数',
                                'path': ['max_retries']})
+            mt = raw.get('maker_timeout_s')
+            if mt is not None and (not isinstance(mt, (int, float)) or mt <= 0):
+                issues.append({'message': 'maker_timeout_s 必须是 >0 或 null',
+                               'path': ['maker_timeout_s']})
             if issues:
                 return {'issues': issues}
             return {'value': {'dir': str(raw.get('dir', '.tasks')),
-                              'max_retries': mr}, 'issues': []}
+                              'max_retries': mr, 'maker_timeout_s': mt},
+                    'issues': []}
 
     def __init__(self, ctx, config=None):
         super().__init__(ctx)
@@ -153,7 +158,19 @@ class TaskBoard(Service):
                 # 同一任务跨 attempts 复用同一会话；若当前指针被别处挪走才恢复
                 sess = cur if cur and cur.id == task['session_id'] \
                     else self.ctx.session.open(task['session_id'])
-            report = await maker(task, feedback, sess)
+            # Loop 双保险（day04）：max_retries 是退出条件，maker_timeout_s 是掐表
+            mt = self.config.get('maker_timeout_s')
+            try:
+                coro = maker(task, feedback, sess)
+                report = await asyncio.wait_for(coro, mt) if mt else await coro
+            except asyncio.TimeoutError:
+                self._audit('maker-timeout', task, timeout_s=mt)
+                fb = f'本轮执行超时（{mt}s 掐表）：视为不过，请缩小范围或换更快做法'
+                esc = self._fail_attempt(task, fb)
+                if esc:
+                    return esc
+                feedback = fb                    # 注入下一轮 maker
+                continue
             self.report(tid, report, caller=task['worker'])
             # DoD：可执行验收优先（不通过不浪费评审）
             ok, why = await self._dod(task)
@@ -170,19 +187,27 @@ class TaskBoard(Service):
             if verdict['outcome'] == 'success':
                 return self._apply_verdict(task, 'success',
                                            verdict['feedback'], via='run')
-            feedback = verdict['feedback']
-            task['feedback'] = feedback
-            if task['attempts'] >= self.config['max_retries']:
-                task['status'] = 'escalated'
-                self._audit('escalated', task, reason=feedback[:200])
-                self._log.warn('任务 %s 尝试 %s 次仍不过 → 升级人工', tid,
-                               task['attempts'])
-                self.ctx.emit('task/escalated', tid, feedback)
-                return dict(task)
-            task['status'] = 'rejected'     # 同一 id 返工，feedback 注入下轮
-            self._audit('rejected', task, reason=feedback[:200])
-            self.ctx.emit('task/rejected', tid, feedback)
+            esc = self._fail_attempt(task, verdict['feedback'])
+            if esc:
+                return esc
+            feedback = verdict['feedback']       # 注入下一轮 maker
         raise AssertionError('unreachable')   # 循环出口只有 completed/escalated
+
+    def _fail_attempt(self, task, feedback):
+        """一次不过：未到封顶 → rejected 返工（同一 id，feedback 注入下轮）；
+        到封顶 → escalated，机器路径封死。返回 task 副本表示已到终态。"""
+        task['feedback'] = feedback
+        if task['attempts'] >= self.config['max_retries']:
+            task['status'] = 'escalated'
+            self._audit('escalated', task, reason=str(feedback)[:200])
+            self._log.warn('任务 %s 尝试 %s 次仍不过 → 升级人工',
+                           task['id'], task['attempts'])
+            self.ctx.emit('task/escalated', task['id'], feedback)
+            return dict(task)
+        task['status'] = 'rejected'     # 同一 id 返工，feedback 注入下轮
+        self._audit('rejected', task, reason=str(feedback)[:200])
+        self.ctx.emit('task/rejected', task['id'], feedback)
+        return None
 
     # ------------------------------------------------------------ 内部
 

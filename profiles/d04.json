@@ -1,0 +1,14 @@
+{
+  "name": "d04",
+  "extends": "d03",
+  "mode": "chat",
+  "plugins": [
+    {"id": "taskboard", "config": {"maker_timeout_s": 120}},
+    {"id": "loopctl", "module": "plugins/loopctl.py",
+     "config": {"max_iters": 20}},
+    {"id": "graph", "module": "plugins/graph.py",
+     "config": {"dir": "{data}/graphs", "max_steps": 64}},
+    {"id": "fanout", "module": "plugins/fanout.py",
+     "config": {"max_parallel": 4, "timeout_s": 30}}
+  ]
+}

@@ -198,6 +198,73 @@ async def mode_task(root, data: pathlib.Path):
         print(f"  {j['ts']}  {j['event']:<15} {j['id']}  attempts={j['attempts']}")
 
 
+async def mode_graph(root, data: pathlib.Path):
+    """day04 演示：Loop 双保险 / 可解释 Graph 路由 / Fan-out·Fan-in / 失败传播。"""
+    loop, graphs, fan = root.get('loop'), root.get('graph'), root.get('fanout')
+
+    print('\n[1] Loop · 退出条件（第一保险）——见到 green 就停')
+    traffic = ['red', 'red', 'red', 'green']
+    r = await loop.run(lambda i: traffic[min(i, 3)],
+                       exit_when=lambda i, v: v == 'green', max_iters=10)
+    print(f'    → {r["reason"]}  completed={r["completed"]}  于第 {r["iters"]} 轮')
+
+    print('[2] Loop · 轮数顶（第二保险）——退出谓词永不成立也不会跑飞')
+    r = await loop.run(lambda i: 'red', exit_when=lambda i, v: v == 'green',
+                       max_iters=4)
+    print(f'    → {r["reason"]}  completed={r["completed"]}  于第 {r["iters"]} 轮')
+
+    print('[3] Loop · 超时（第三保险）——某轮永不返回，被掐表')
+    async def stuck(i):
+        await asyncio.sleep(30)
+    r = await loop.run(stuck, timeout_s=0.3)
+    print(f'    → {r["reason"]}  掐表于第 {r["iters"]} 轮')
+
+    print('\n[4] Graph · 可解释路由（每条边带 because，台账可回放）')
+    g = graphs.define('ticket', entry='classify')
+    g.node('classify', lambda d: d['kind'])
+    g.edge('classify', 'bug', 'fix', because='报错类走修复分支')
+    g.edge('classify', 'feature', 'plan', because='新需求先出计划')
+    g.edge('classify', '*', 'triage', because='识别不了的转人工，绝不丢弃')
+    g.node('fix', lambda d: f'已修 #{d.get("id", "?")}')
+    g.node('plan', lambda d: '已生成计划')
+    g.node('triage', lambda d: '已转人工')
+    for kind in ('bug', 'feature', 'question'):
+        r = await g.run({'kind': kind, 'id': 42})
+        hop = r['path'][0] if r['path'] else {}
+        print(f'    kind={kind:<9}→ {r["outcome"]:<5} {hop.get("node")}→'
+              f'{hop.get("to")}（{hop.get("because")}）')
+    print('    路由表：')
+    for line in g.rules():
+        print('      ' + line)
+
+    print('\n[5] Graph · 失败传播：节点炸了显式 failed，不当成功返回')
+    def boom(_d):
+        raise RuntimeError('上游 502')
+    g2 = graphs.define('flaky', entry='fetch')
+    g2.node('fetch', boom)
+    r = await g2.run({})
+    print(f'    → outcome={r["outcome"]}  node={r["node"]}  error={r["error"]}')
+
+    print('\n[6] Fan-out/Fan-in：4 路并行，其中 1 路异常、1 路超时')
+    async def work(name):
+        if name == 'c.md':
+            raise RuntimeError('disk full')
+        if name == 'big.md':
+            await asyncio.sleep(5)
+        await asyncio.sleep(0.02)
+        return f'{name}:8行'
+    r = await fan.scatter(
+        ['a.md', 'b.md', 'c.md', 'big.md'], work, timeout_s=0.3,
+        reduce=lambda rs: f'汇总 {sum(1 for x in rs if x["ok"])}/{len(rs)}，'
+                          f'失败 {[x["item"] for x in rs if not x["ok"]]}')
+    print(f'    → outcome={r["outcome"]}（不是成功）  merged={r["merged"]}')
+    for b in r['results']:
+        print(f'      {"✓" if b["ok"] else "✗"} {b["item"]}: '
+              f'{b.get("value") or b.get("error")}')
+
+    print(f'\n    Graph 台账（可回放）：{data / "graphs" / "graph.jsonl"}')
+
+
 async def mode_chat(root, prompt=None):
     tasks = root.get('tasks', strict=False)
     if prompt:
@@ -284,6 +351,8 @@ async def amain(args) -> int:
             done = await mode_demo(root, data)
         elif mode == 'task':
             await mode_task(root, data)
+        elif mode == 'graph':
+            await mode_graph(root, data)
         elif mode == 'serve':
             await mode_serve(root)
         else:
@@ -302,7 +371,8 @@ def main():
     ap.add_argument('-p', '--profile', default='demo',
                     help=f'profile 名（{", ".join(p.stem for p in sorted(PROFILES.glob("*.json")))}）')
     ap.add_argument('--data', help='数据目录（默认 .data/<profile>/）')
-    ap.add_argument('--mode', choices=['demo', 'chat', 'serve'], help='覆盖 profile 的 mode')
+    ap.add_argument('--mode', choices=['demo', 'chat', 'serve', 'task', 'graph'],
+                    help='覆盖 profile 的 mode')
     ap.add_argument('--prompt', help='chat 模式单次提问')
     ap.add_argument('--set', action='append', default=[],
                     metavar='id.key=value', help='覆盖插件配置，可多次')
