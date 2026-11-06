@@ -1,0 +1,94 @@
+{
+  "schema": 1, 
+  "run_id": "c0ccae9e", 
+  "generation": 2, 
+  "mode": "resume", 
+  "status": "completed", 
+  "updated_at": "2026-11-06T06:21:29.876+00:00", 
+  "journal": {
+    "path": "run/events.jsonl", 
+    "last_seq": 20
+  }, 
+  "tasks": {
+    "task-01": {
+      "id": "task-01", 
+      "name": "fetch_sources", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": null, 
+      "finished_at": null, 
+      "result_digest": "533dac9ba2f63e78", 
+      "side_effect": "atomic"
+    }, 
+    "task-02": {
+      "id": "task-02", 
+      "name": "parse_documents", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": null, 
+      "finished_at": null, 
+      "result_digest": "7194cb9f04891c7d", 
+      "side_effect": "atomic"
+    }, 
+    "task-03": {
+      "id": "task-03", 
+      "name": "chunk_text", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": null, 
+      "finished_at": null, 
+      "result_digest": "a1c6734bd977197f", 
+      "side_effect": "atomic"
+    }, 
+    "task-04": {
+      "id": "task-04", 
+      "name": "embed_chunks", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": null, 
+      "finished_at": null, 
+      "result_digest": "2b9f682cb75d1c57", 
+      "side_effect": "atomic"
+    }, 
+    "task-05": {
+      "id": "task-05", 
+      "name": "build_index", 
+      "status": "done", 
+      "attempt": 2, 
+      "started_at": "2026-11-06T06:21:28.568+00:00", 
+      "finished_at": "2026-11-06T06:21:28.998+00:00", 
+      "result_digest": "960625289d279241", 
+      "side_effect": "stream"
+    }, 
+    "task-06": {
+      "id": "task-06", 
+      "name": "rank_candidates", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": "2026-11-06T06:21:29.006+00:00", 
+      "finished_at": "2026-11-06T06:21:29.257+00:00", 
+      "result_digest": "55a90098157ebeff", 
+      "side_effect": "atomic"
+    }, 
+    "task-07": {
+      "id": "task-07", 
+      "name": "draft_answer", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": "2026-11-06T06:21:29.266+00:00", 
+      "finished_at": "2026-11-06T06:21:29.577+00:00", 
+      "result_digest": "9f292bfac5e4c76d", 
+      "side_effect": "atomic"
+    }, 
+    "task-08": {
+      "id": "task-08", 
+      "name": "write_report", 
+      "status": "done", 
+      "attempt": 1, 
+      "started_at": "2026-11-06T06:21:29.586+00:00", 
+      "finished_at": "2026-11-06T06:21:29.865+00:00", 
+      "result_digest": "a6f987609099101c", 
+      "side_effect": "stream"
+    }
+  }
+}

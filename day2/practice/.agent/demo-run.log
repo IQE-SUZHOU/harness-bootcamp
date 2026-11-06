@@ -1,0 +1,119 @@
+
+=== 0. 清场 ===
+  RUN_DIR=/home/zhyuan/tools/day2-agent-lab/run
+  下刀位置=task-05  TASK_SECONDS=0.6  BITE_DELAY=0.4
+
+=== 1. 启动 harness（gen1）并在 task-05 中途 kill -9 ===
+  已启动 pid=11，轮询 journal 等待 task-05 的 task_started…
+[harness] mode=fresh run_id=85e7c669 tasks=8 state=run/state.json journal=run/events.jsonl
+[run gen1] task-01 fetch_sources   START  attempt=1
+[run gen1] task-01 fetch_sources   DONE   digest=533dac9ba2f63e78
+[run gen1] task-02 parse_documents START  attempt=1
+[run gen1] task-02 parse_documents DONE   digest=7194cb9f04891c7d
+[run gen1] task-03 chunk_text      START  attempt=1
+[run gen1] task-03 chunk_text      DONE   digest=a1c6734bd977197f
+[run gen1] task-04 embed_chunks    START  attempt=1
+[run gen1] task-04 embed_chunks    DONE   digest=2b9f682cb75d1c57
+[run gen1] task-05 build_index     START  attempt=1
+  看到 task-05 task_started，再等 0.4s 让它跑进任务中段
+  kill -9 已发出（wait 退出码=137，137 = 128+SIGKILL）
+
+=== 2. 恢复前现场：快照 / journal / 产物 ===
+  status=running mode=fresh gen=1 run_id=85e7c669 journal.last_seq=10
+  task-01 fetch_sources   done     attempt=1 digest=533dac9ba2f63e78
+  task-02 parse_documents done     attempt=1 digest=7194cb9f04891c7d
+  task-03 chunk_text      done     attempt=1 digest=a1c6734bd977197f
+  task-04 embed_chunks    done     attempt=1 digest=2b9f682cb75d1c57
+  task-05 build_index     running  attempt=1 digest=None
+  task-06 rank_candidates pending  attempt=0 digest=None
+  task-07 draft_answer    pending  attempt=0 digest=None
+  task-08 write_report    pending  attempt=0 digest=None
+
+=== 2a. journal 现状 ===
+  总行数=10  task_started=5  task_finished=4
+  尾部 4 行：
+    {"seq": 7, "ts": "2026-11-06T06:34:05.795+00:00", "event": "task_finished", "run_id": "85e7c669", "task_id": "task-03", "attempt": 1, "digest": "a1c6734bd977197f"}
+    {"seq": 8, "ts": "2026-11-06T06:34:05.803+00:00", "event": "task_started", "run_id": "85e7c669", "task_id": "task-04", "attempt": 1}
+    {"seq": 9, "ts": "2026-11-06T06:34:06.775+00:00", "event": "task_finished", "run_id": "85e7c669", "task_id": "task-04", "attempt": 1, "digest": "2b9f682cb75d1c57"}
+    {"seq": 10, "ts": "2026-11-06T06:34:06.783+00:00", "event": "task_started", "run_id": "85e7c669", "task_id": "task-05", "attempt": 1}
+
+=== 2b. 产物现状（task-05：stream 型会留半截，atomic 型要么没有要么完整） ===
+  task-01      artifact 行数=1   mtime=14:34:04 md5=6c00a8cd
+  task-02      artifact 行数=1   mtime=14:34:05 md5=176b3f95
+  task-03      artifact 行数=1   mtime=14:34:05 md5=4c5f932a
+  task-04      artifact 行数=1   mtime=14:34:06 md5=982d7d70
+  task-05      artifact 行数=2   mtime=14:34:07 md5=bab07b3b
+
+=== 3. 恢复决策：journal 回放对账（--status，只判定不执行） ===
+[reconcile] journal 回放 10 行（坏行 0），最后 seq=10
+[reconcile] 快照缓存 gen=1 status=running run_id=85e7c669（仅作参考，判定以 journal 为准）
+[reconcile] skip=4 rerun=1 run=3
+  task-01 fetch_sources   done        SKIP  journal finished seq=3 attempt=1
+  task-02 parse_documents done        SKIP  journal finished seq=5 attempt=1
+  task-03 chunk_text      done        SKIP  journal finished seq=7 attempt=1
+  task-04 embed_chunks    done        SKIP  journal finished seq=9 attempt=1
+  task-05 build_index     interrupted RERUN journal started seq=10 attempt=1，无 finished；快照同样记为 running（一致）
+  task-06 rank_candidates pending     RUN   journal 与快照都没有该任务的执行记录
+  task-07 draft_answer    pending     RUN   journal 与快照都没有该任务的执行记录
+  task-08 write_report    pending     RUN   journal 与快照都没有该任务的执行记录
+
+=== 4. 恢复执行（--resume） ===
+[reconcile] journal 回放 10 行（坏行 0），最后 seq=10
+[reconcile] 快照缓存 gen=1 status=running run_id=85e7c669（仅作参考，判定以 journal 为准）
+[reconcile] skip=4 rerun=1 run=3
+  task-01 fetch_sources   done        SKIP  journal finished seq=3 attempt=1
+  task-02 parse_documents done        SKIP  journal finished seq=5 attempt=1
+  task-03 chunk_text      done        SKIP  journal finished seq=7 attempt=1
+  task-04 embed_chunks    done        SKIP  journal finished seq=9 attempt=1
+  task-05 build_index     interrupted RERUN journal started seq=10 attempt=1，无 finished；快照同样记为 running（一致）
+  task-06 rank_candidates pending     RUN   journal 与快照都没有该任务的执行记录
+  task-07 draft_answer    pending     RUN   journal 与快照都没有该任务的执行记录
+  task-08 write_report    pending     RUN   journal 与快照都没有该任务的执行记录
+[harness] mode=resume gen=2 run_id=fcb06bf9 skip=4 rerun=1 run=3
+[run gen2] task-05 build_index     START  attempt=2
+[run gen2] task-05 build_index     DONE   digest=960625289d279241
+[run gen2] task-06 rank_candidates START  attempt=1
+[run gen2] task-06 rank_candidates DONE   digest=55a90098157ebeff
+[run gen2] task-07 draft_answer    START  attempt=1
+[run gen2] task-07 draft_answer    DONE   digest=9f292bfac5e4c76d
+[run gen2] task-08 write_report    START  attempt=1
+[run gen2] task-08 write_report    DONE   digest=a6f987609099101c
+[run gen2] completed: 4 task(s) in this process
+
+=== 5. 恢复后现场 ===
+  status=completed mode=resume gen=2 run_id=fcb06bf9 journal.last_seq=20
+  task-01 fetch_sources   done     attempt=1 digest=533dac9ba2f63e78
+  task-02 parse_documents done     attempt=1 digest=7194cb9f04891c7d
+  task-03 chunk_text      done     attempt=1 digest=a1c6734bd977197f
+  task-04 embed_chunks    done     attempt=1 digest=2b9f682cb75d1c57
+  task-05 build_index     done     attempt=2 digest=960625289d279241
+  task-06 rank_candidates done     attempt=1 digest=55a90098157ebeff
+  task-07 draft_answer    done     attempt=1 digest=9f292bfac5e4c76d
+  task-08 write_report    done     attempt=1 digest=a6f987609099101c
+
+=== 5a. journal 现状 ===
+  总行数=20  task_started=9  task_finished=8
+  尾部 4 行：
+    {"seq": 17, "ts": "2026-11-06T06:34:08.379+00:00", "event": "task_finished", "run_id": "fcb06bf9", "task_id": "task-07", "attempt": 1, "digest": "9f292bfac5e4c76d"}
+    {"seq": 18, "ts": "2026-11-06T06:34:08.388+00:00", "event": "task_started", "run_id": "fcb06bf9", "task_id": "task-08", "attempt": 1}
+    {"seq": 19, "ts": "2026-11-06T06:34:08.665+00:00", "event": "task_finished", "run_id": "fcb06bf9", "task_id": "task-08", "attempt": 1, "digest": "a6f987609099101c"}
+    {"seq": 20, "ts": "2026-11-06T06:34:08.673+00:00", "event": "run_finished", "run_id": "fcb06bf9", "generation": 2, "tasks": 4}
+
+=== 5b. 产物：skip 的任务 mtime 未变，rerun 的任务被重写 ===
+  task-01  行数=1   mtime=14:34:04  未改动 → 证明确实被 SKIP
+  task-02  行数=1   mtime=14:34:05  未改动 → 证明确实被 SKIP
+  task-03  行数=1   mtime=14:34:05  未改动 → 证明确实被 SKIP
+  task-04  行数=1   mtime=14:34:06  未改动 → 证明确实被 SKIP
+  task-05  行数=5   mtime=14:34:07  被重写 → RERUN（md5 bab07b3b -> 10206021）
+  task-06  行数=1   mtime=14:34:08  新产物（本次首次执行）
+  task-07  行数=1   mtime=14:34:08  新产物（本次首次执行）
+  task-08  行数=5   mtime=14:34:08  新产物（本次首次执行）
+
+=== 6. 校验 ===
+  OK 8/8 done；journal 20 行 seq 连续单调
+  OK 全程 task_started=9 次 vs task_finished=8 次 → 差 1 次，正是被 kill 的那一次尝试没有闭合
+  OK task-05 attempt=2（重跑），其 digest=960625289d279241（与首次一致 → 幂等）
+  OK 进程代数：run_started=2 次 modes=['fresh', 'resume']；run_finished 只出现在 generations=[2]（gen1 被杀，没有 run_finished）
+
+=== 完成 ===
+  中断→恢复闭环跑通。设计说明见 STATE_DESIGN.md；过程记录见 .agent/HANDOFF.md

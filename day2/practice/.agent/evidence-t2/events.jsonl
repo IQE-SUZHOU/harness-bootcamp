@@ -1,0 +1,20 @@
+{"seq": 1, "ts": "2026-11-06T06:21:18.283+00:00", "event": "run_started", "run_id": "abc08cf9", "mode": "fresh", "tasks": 8}
+{"seq": 2, "ts": "2026-11-06T06:21:18.291+00:00", "event": "task_started", "run_id": "abc08cf9", "task_id": "task-01", "attempt": 1}
+{"seq": 3, "ts": "2026-11-06T06:21:18.783+00:00", "event": "task_finished", "run_id": "abc08cf9", "task_id": "task-01", "attempt": 1, "digest": "533dac9ba2f63e78"}
+{"seq": 4, "ts": "2026-11-06T06:21:18.791+00:00", "event": "task_started", "run_id": "abc08cf9", "task_id": "task-02", "attempt": 1}
+{"seq": 5, "ts": "2026-11-06T06:21:19.522+00:00", "event": "task_finished", "run_id": "abc08cf9", "task_id": "task-02", "attempt": 1, "digest": "7194cb9f04891c7d"}
+{"seq": 6, "ts": "2026-11-06T06:21:19.531+00:00", "event": "task_started", "run_id": "abc08cf9", "task_id": "task-03", "attempt": 1}
+{"seq": 7, "ts": "2026-11-06T06:21:19.903+00:00", "event": "task_finished", "run_id": "abc08cf9", "task_id": "task-03", "attempt": 1, "digest": "a1c6734bd977197f"}
+{"seq": 8, "ts": "2026-11-06T06:21:19.911+00:00", "event": "task_started", "run_id": "abc08cf9", "task_id": "task-04", "attempt": 1}
+{"seq": 9, "ts": "2026-11-06T06:21:20.882+00:00", "event": "task_finished", "run_id": "abc08cf9", "task_id": "task-04", "attempt": 1, "digest": "2b9f682cb75d1c57"}
+{"seq": 10, "ts": "2026-11-06T06:21:20.890+00:00", "event": "task_started", "run_id": "abc08cf9", "task_id": "task-05", "attempt": 1}
+{"seq": 11, "ts": "2026-11-06T06:21:28.559+00:00", "event": "run_started", "run_id": "c0ccae9e", "mode": "resume", "tasks": 4, "skipped": 4}
+{"seq": 12, "ts": "2026-11-06T06:21:28.568+00:00", "event": "task_started", "run_id": "c0ccae9e", "task_id": "task-05", "attempt": 2}
+{"seq": 13, "ts": "2026-11-06T06:21:28.998+00:00", "event": "task_finished", "run_id": "c0ccae9e", "task_id": "task-05", "attempt": 2, "digest": "960625289d279241"}
+{"seq": 14, "ts": "2026-11-06T06:21:29.006+00:00", "event": "task_started", "run_id": "c0ccae9e", "task_id": "task-06", "attempt": 1}
+{"seq": 15, "ts": "2026-11-06T06:21:29.257+00:00", "event": "task_finished", "run_id": "c0ccae9e", "task_id": "task-06", "attempt": 1, "digest": "55a90098157ebeff"}
+{"seq": 16, "ts": "2026-11-06T06:21:29.266+00:00", "event": "task_started", "run_id": "c0ccae9e", "task_id": "task-07", "attempt": 1}
+{"seq": 17, "ts": "2026-11-06T06:21:29.577+00:00", "event": "task_finished", "run_id": "c0ccae9e", "task_id": "task-07", "attempt": 1, "digest": "9f292bfac5e4c76d"}
+{"seq": 18, "ts": "2026-11-06T06:21:29.586+00:00", "event": "task_started", "run_id": "c0ccae9e", "task_id": "task-08", "attempt": 1}
+{"seq": 19, "ts": "2026-11-06T06:21:29.865+00:00", "event": "task_finished", "run_id": "c0ccae9e", "task_id": "task-08", "attempt": 1, "digest": "a6f987609099101c"}
+{"seq": 20, "ts": "2026-11-06T06:21:29.873+00:00", "event": "run_finished", "run_id": "c0ccae9e", "generation": 2, "tasks": 4}
