@@ -89,6 +89,11 @@
 
 ## 六、下一阶段内容（Day 04 预告）
 
-今天的三插件都在**单进程、单 agent** 内闭环：checker 虽然独立判定，但仍共享同一个进程与模型配置。DSH 的完整形态是多会话协作——worker 与 reviewer 是**不同会话**，靠任务台账（create_task/report_task/settle_task）跨进程传递状态，配合持久化与超时 backstop。下一步的自然方向：把 taskboard 拆成跨会话的账本（maker 与 checker 各跑各的 profile），或把 gate 的命令钩子升级为可声明的策略文件（对标 hooks.json）。
+核心概念：
 
-衔接自评：Day01 学"插件怎么活"，Day02 学"状态怎么活"，今天学"质量怎么活"——三天的东西正好叠成 DSH 的一个剖面：运行时（epoch/依赖/事件）承载持久化（session/台账），持久化之上跑治理（门禁/评审/升级）。对 Agent 的信任，最终是靠验证结构建立的。
+- **Loop**：自动循环必须自带两样——退出条件 + 超时，否则必跑飞
+- **Graph 路由**：任务按条件走不同分支；路由规则要能被人解释，不能是黑盒
+- **Fan-out / Fan-in**：一个任务拆多路并行（fan-out），结果汇合成一个（fan-in）
+- **失败传播**：一个节点失败，下游必须可见地知道——静默吞掉 = 假成功
+
+衔接自评：这四个概念其实是今天工作的自然延长线——taskboard 的 `max_retries` 封顶 + `escalated` 封死，就是 Loop 两样装备的单机版雏形（还缺"超时"这一半：maker 一轮卡住目前没人掐表，对标 DSH 的 timeout backstop 与 guard/timeout-policy）；escalated→人工、DoD 过/不过走不同分支，已经是可解释的 Graph 路由（规则写在状态机转移里，台账可回放，不是模型临场心证）；下一步把 taskboard 拆成**跨会话的 DAG**（对标 DSH flows：每个节点一个任务，依赖 settled 才投递，fan-out 并行执行、handoff 文档 fan-in 汇总）正好把四件事一次用上；而失败传播是台账的状态机最该守住的底线——`rejected` 与 `completed` 之间的每次转移都留了审计行，就是为了"下游永远知道上游的真实下场"，静默吞掉的 `completed` 是最危险的一种 bug。Day01 学"插件怎么活"，Day02 学"状态怎么活"，Day03 学"质量怎么活"，Day04 该学"**编排怎么活**"：当一个循环、一张图同时跑多路 agent 时，信任结构如何不塌。
