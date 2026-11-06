@@ -1,117 +1,136 @@
-# mini_cordis —— 参考 cordis 的最小可运行插件化运行时
+# mini-harness —— DeepSeek Harness 训练营学习工程（Stage 1 · JSD）
 
-参考 `/home/amd/sut-target-os/dsh_back/vendor/cordis`（`@deepseek-ai/cordis` 4.0.2，
-核心 9 文件 ≈2700 行）实现的**最小且功能完整**的运行时，Python 3.12、**零第三方依赖**、零构建。
+> 用 **Python 3.12 纯标准库**（零第三方依赖、零构建）从零实现一个可用的 Agent Harness：
+> 插件化运行时内核 `mini_cordis` + 13 个业务插件 + 11 个 profile 组合，
+> 五天从"最小可运行"走到"容器化交付 K8s"。**88/88 测试全绿**。
+>
+> 仓库：[IQE-SUZHOU/harness-bootcamp · JSD 分支](https://github.com/IQE-SUZHOU/harness-bootcamp/tree/JSD)
 
-它保留 cordis 的灵魂——"依赖没就绪就不激活，就绪的那一刻自动激活"的
-**epoch 驱动生命周期**，以及服务贡献 / effect 自动清理 / 事件总线 / 配置体系 /
-配置驱动加载；剔除 RPC（属 harness 层而非 cordis 核心）、HMR、isolate 隔离、
-trace 代理与部分竞态防御细节。
+---
 
-## 快速上手
+## 一、项目概况
 
-```python
-import asyncio
-from mini_cordis import Context, Service
+### 这是什么
 
-class Counter(Service):
-    provide = 'counter'
-    def __init__(self, ctx):
-        super().__init__(ctx)
-        self.n = 0
-    def incr(self): self.n += 1
+参考 DSH（DeepSeek Harness）源码（`dsh_back`，只读对照）与其运行时 `@deepseek-ai/cordis`
+的核心思想，自底向上实现的教学版 harness：
 
-def greeter(ctx):
-    ctx.on('app/ready', lambda m: print(m, ctx.counter.n))
-
-async def main():
-    root = Context()
-    await root.plugin(Counter)
-    await root.plugin({'apply': greeter, 'inject': ['counter']})
-    root.emit('app/ready', 'started')
-    await root.fiber.dispose()      # 级联卸载
-
-asyncio.run(main())
+```
+┌─────────────────────────────────────────────────────────────┐
+│  run.py 启动器 + profiles/（插件组合即产品形态）               │
+│  full / d04 / d03 / web / chat / demo / readonly …           │
+├─────────────────────────────────────────────────────────────┤
+│  业务插件层 plugins/                                          │
+│   agent-loop ─ LLM 会话循环 + 工具注册表（门禁拦截点）          │
+│   治理三件套(03)  gate 门禁 · checker 独立评审 · taskboard 台账│
+│   编排三件套(04)  loopctl 循环保险 · graph 路由 · fanout 扇出  │
+│   基础设施  session v2 · sandbox · llm(四级驱动) · bash · webui│
+├─────────────────────────────────────────────────────────────┤
+│  mini_cordis 运行时内核（9 模块 ≈1300 行）                     │
+│  Context/DI · Fiber(epoch 生命周期) · Registry · Reflect      │
+│  Events(emit/parallel/serial/bail/waterfall) · Loader(JSON)  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 概念对照
+- **一次对话的完整链路**：用户输入 → session 记史 → LLM（带工具 schema）→
+  tool_calls → **gate 门禁** → tools.call → sandbox.exec（三模式/黑名单/超时杀进程组/
+  输出截断）→ 结果回写 session → 再问 LLM → … → 纯文本回复（`max_turns` 熔断）
+- **LLM 驱动四级自动选择**（llm 插件）：profile 显式配置 → 本机 DSH 配置
+  （`~/.dsh/settings.yaml` 的 `llm-pi-ai.providers` + `agent-default-model`，零依赖
+  YAML 子集解析、密钥掩码；可用 `DSH_SETTINGS` 环境变量改路径）→ `OPENAI_API_KEY/BASE_URL`
+  环境变量 → fake 驱动离线跑通全链路（`--fake` 可强制）
+- **运行时灵魂保留 cordis**：依赖没就绪就不激活、就绪那一刻自动激活的 epoch 驱动
+  生命周期；服务贡献 / effect 自动清理 / 事件总线 / 配置校验热更新 / JSON 装配加载
+  （与 cordis 的有意取舍见[开发约定](#五开发约定)）
 
-| cordis (TypeScript)                | mini_cordis (Python)              | 语义 |
-|------------------------------------|-----------------------------------|------|
-| `context.ts` `new Context()`+Proxy | `context.py` `Context.__getattr__` | ctx.xxx 属性读取解析服务；插件未 inject 的服务直接抛错 |
-| `fiber.ts` `Fiber`                 | `fiber.py` `Fiber`                | 插件生命周期状态机，epoch=注入依赖 uid 指纹 |
-| `registry.ts` `RegistryService`    | `registry.py`                     | 插件三形态（函数/类/dict）、以 callback 为身份缓存 runtime、uid 计数器 |
-| `reflect.ts` `ReflectService`      | `reflect.py`                      | 服务存储、strict 可见性（提供者必须 ACTIVE）、notify 唤醒依赖者 |
-| `service.ts` `Service`             | `service.py`                      | 命名服务基类：`check()` 可用性谓词、`init()` 钩子、`resolve_config()` |
-| `events.ts` `EventsService`        | `events.py`                       | emit / parallel / serial / bail / waterfall 五种派发；监听器随 fiber 卸载 |
-| `logger.ts` `LoggerService`        | `logger.py`                       | 具名 logger、printf 占位符、级别（ERROR/INFO/WARN/DEBUG）、exporter |
-| `@cordisjs/plugin-loader`          | `loader.py`                       | JSON 配置装配：`{id, module, config, disabled}` + reload/dispose |
-| `ctx.effect()`                     | `fiber.effect` / `ctx.effect`     | disposer / 生成器 / 协程 / 异步生成器 四种形状；effect 内逆序、effect 间并发（对齐 Promise.all） |
-| `ctx.extend()` / `ctx.intercept()` | 同名方法                          | 原型式子上下文；按服务截获配置沿链合并 |
+### 规模一览
 
-## 核心机制（都是测试验证过的）
+| 维度 | 数字 |
+|---|---|
+| 测试 | **88 项**（`python3 -m unittest discover -s tests -t .`，全离线确定性） |
+| 运行时内核 | `mini_cordis/` 9 模块 ≈1300 行 |
+| 业务插件 | 13 个（workspace/session/sandbox/llm/agent_loop/bash/webui/gate/checker/taskboard/loopctl/graph/fanout） |
+| profile | 11 个（extends 深合并 + `{data}` 占位 + `--set` 覆盖） |
+| 交付形态 | 本地 REPL / 本地 Web UI / **Docker→Harbor→K8s**（NodePort `:30988`） |
+| 真实模型实测 | 本机 Qwen（qwen38-flash-10）全流程：工具循环、maker-checker 驳回→返工、`/task` 一次过 |
 
-1. **尽力而为的加载**：`ctx.plugin(P)` 缺依赖不报错，fiber 停在 PENDING；
-   依赖出现的瞬间（provider 跨越 ACTIVE 边界触发 notify）自动激活。
-2. **epoch 竞态模型**：epoch 是注入依赖"提供者 uid"的拼接串。依赖被替换
-   （卸载→新实现）会让依赖者 卸载→重载；过渡进行中的 epoch 变化在过渡
-   结束时按"epoch 是否还是那份"重新驱动 —— 直接移植 cordis `_setEpoch/_reload/_unload`。
-3. **加载失败隔离**：插件抛错 → 进 logger、fiber FAILED、`await fiber` 重抛；
-   epoch 强制置 INACTIVE 防重试风暴，依赖变化 / `restart()` 时自动重试。
-4. **生命周期级联**：子插件的销毁注册在父 fiber 的 effect 上；
-   `root.fiber.dispose()` 优雅停机一切。
-5. **服务动态性**：`Service.check()` 谓词可让"活着但不可用"的服务
-   （如断线的数据库）把依赖者压回 PENDING；业务状态翻转后 `reflect.notify` 惊动。
-6. **热更新**：`fiber.update(config)` 重新校验（callable 或 standard-schema 风格）
-   并重启插件；loader 支持按 id reload/dispose。
+### 目录
 
-## 运行
-
-```bash
-python3 examples/01_quickstart.py   # 最小闭环：Service+inject+事件
-python3 examples/02_lifecycle.py    # effect 四形状 / 逆序 / 级联 / get_effects
-python3 examples/03_services.py     # 依赖动态编排：PENDING→激活→回落→重载
-python3 examples/04_events.py       # 五种事件派发模式
-python3 examples/05_config.py       # 配置校验/失败隔离/热更新/intercept 链
-python3 examples/06_loader/app.py   # JSON 配置装配 + disabled + reload
-python3 examples/07_minikv/app.py   # 综合应用：TCP KV 服务（逐出/审计/热卸载）
-python3 examples/08_workspace/app.py # 在运行时之上装配 workspace 业务插件
-python3 tests/test_runtime.py       # 17 个语义验收测试
-python3 tests/test_workspace.py     # workspace 插件 5 项验收测试
-python3 tests/test_miniharness.py   # mini-harness（profile 装配）11 项验收测试
-python3 tests/test_llm_plugin.py    # llm 插件 7 项验收测试
-python3 tests/test_session_lifecycle.py  # 会话完整生命周期 6 项
-python3 tests/test_webui.py         # webui 插件 5 项（HTTP/SSE/中断/单飞）
-python3 tests/test_gate.py          # gate 验证门禁 5 项（规则/钩子/fail-closed）
-python3 tests/test_checker.py       # checker 独立评审 4 项（fail-closed 三形态）
-python3 tests/test_taskboard.py     # taskboard 台账 8 项（DoD/maker-checker/重试/人工gate）
-python3 tests/test_loopctl.py       # loopctl 循环双保险 5 项（退出条件/轮顶/超时掐表）
-python3 tests/test_graph.py         # graph 可解释路由 6 项（because强制/no_route/失败可见）
-python3 tests/test_fanout.py        # fanout 扇出扇入 6 项（partial三态/并发有界/汇合留证）
-python3 tests/test_full.py          # full 交付形态 3 项（全家桶装配/instructions注入/容错）
-python3 -m unittest discover -s tests -t .   # 一次跑全部（88 项）
+```
+mini_cordis/     运行时内核（Context/Fiber/Registry/Reflect/Events/Logger/Loader/Service）
+run.py           启动器：按 profiles/ 装配，模式 chat/demo/task/graph/serve
+profiles/        11 个组合；full = 交付形态（可日常使用，run.py 默认入口）
+plugins/         业务插件（每个文件头注释 = 概念出处 + 机制 + 配置）
+examples/        01-05 单主题（quickstart/lifecycle/services/events/config）
+                 06 loader · 07 minikv(TCP KV 综合) · 08 workspace
+tests/           88 项验收测试（unittest.IsolatedAsyncioTestCase）
+docs/            day01–day05 学习进度（概念对照、踩坑学费、验收数据）
+deploy/          容器化：settings.yaml（容器 LLM 配置）+ k8s.yaml（Deployment+NodePort）
+Dockerfile       python:3.12-slim · 非 root · DSH_SETTINGS 注入 · healthcheck
+AGENTS.md        开发约定与仓库纪律（插件三件套、同步铁律、提交流程）
 ```
 
-07 是唯一"像真应用"的示例：loader 装配 store（Service+Config 校验+FIFO 逐出）
-→ api（inject 依赖 + asyncio TCP 服务器，卸载自动关端口）→ audit（纯事件监听），
-宿主连上做协议演示后热卸载 api、优雅停机。
+---
 
-## mini-harness：按 profile 启动（run.py）
+## 二、每日进度（Day 01 → Day 05）
 
-插件组合由 profile 决定，不再写死在某个示例脚本里：
+| Day | 主题 | 交付 | 测试 | 提交 | 学习进度文档 |
+|-----|------|------|------|------|------------|
+| 01 | 运行时内核 + 最小 harness | mini_cordis 全内核；session/sandbox/agent-loop/bash/llm 五插件；examples 01-09 | 40 | `61d00cb` `119bc8c` `3f092be` | [day01](docs/day01-学习进度.md) |
+| 02 | State / Context / Persistence | session v2 完整生命周期（状态机/崩溃恢复/dangling 修补）；可安全中断；**webui 插件**；**run.py + profiles 机制**（废弃 examples/09） | 51 | `8d4baf1` `3922960` `efa73b0` | [day02](docs/day02-学习进度.md) |
+| 03 | Verification 治理 | **gate**（before-call 门禁链/fail-closed）· **checker**（独立 LLM 评审）· **taskboard**（DoD+maker-checker+重试封顶 3 升级人工+JSONL 审计）；REPL `/task` 系 | 68 | `eeff1bd` `f5cd3ec` `382bc7d` | [day03](docs/day03-学习进度.md) |
+| 04 | Loop / Graph 编排 | **loopctl**（退出条件+轮顶+超时三保险）· **graph**（边必带 because 的可解释路由）· **fanout**（partial≠ok 的扇出扇入）；taskboard 补 maker 掐表 | 85 | `eeeb092` `5f6f962` | [day04](docs/day04-学习进度.md) |
+| 05 | 总复习 + 交付 | 查漏（instructions 文件注入、`/switch`）；**full profile 交付形态**（默认入口）；dsh-superagent 研究讨论；**容器化：Docker→Harbor→K8s 拉起 Web UI** | 88 | `ad4f08d` `ab8f689` `87b20f9` | [day05](docs/day05-学习进度.md) |
+
+### 各天要点
+
+- **Day 01 · 概念**：工作区 / 执行环境限制 / harness 最小闭环。
+  sandbox 实测拦截 `sudo rm -rf /`、fork 炸弹、`shutdown`；真实 Qwen 端点跑通工具循环；
+  实测 DSH 配置即 harness 配置（llm 插件直接消费 `~/.dsh/settings.yaml`）。
+- **Day 02 · 概念**：session 生命周期、中断恢复、State 与 Context 分离。
+  JSONL append-only + meta 行 last-wins 状态机（active/interrupted/closed）；
+  崩溃半行丢弃、dangling tool_calls 自动修补保 API 合法；`interrupt()` 现场落盘；
+  确立"配置决定行为、profile 即产品形态"。
+- **Day 03 · 概念**：DoD / 验证门禁 / maker-checker / 重试+人工 gate。
+  worker 与 reviewer 强制不同身份；DoD 命令先于评审（不烧评审轮）；封顶不过 escalated
+  （机器路径封死，只留人工 pass/retry）；JSONL 台账可完整回放；一切异常 fail-closed。
+- **Day 04 · 概念**：Loop 双保险 / 可解释路由 / Fan-out·Fan-in / 失败传播。
+  DSH 编排纪律一句话：**循环有界、路由有据、汇合有态、失败有影**；
+  "说不清 because 的边不许存在"、"partial 绝不是 success"是结构约束不是文档义务。
+- **Day 05 · 总审计 + 交付**：前四概念逐条查漏（已实现跳过，补 instructions/`/switch`）；
+  `full` 全家桶成为默认入口；研究 `dsh-superagent` 原型（Ticket 独立状态、宿主管 slot、
+  report 四态、RECOVERY_NOTE——三道 super-agent 讨论题只讨论不下结论）；
+  容器化三步上 K8s，NodePort 真实对话验收。
+
+---
+
+## 三、使用说明
+
+### 快速开始
 
 ```bash
-python3 run.py                                  # full：可日常使用的完整 harness（REPL+WebUI）
-python3 run.py -p demo                          # 离线脚本演示：崩溃恢复
-python3 run.py -p chat                          # 交互 REPL（/i 中断 /new /list /switch 恢复 /task /quit）
+# 环境：Python ≥3.12，无需 pip install 任何东西
+python3 run.py                        # 默认 full：REPL + WebUI(:8900) + 全部治理件
+```
+
+LLM 自动发现本机 DSH 配置（本机 DSH 正在用的模型即 harness 的模型）；
+没有任何模型配置时自动落到 fake 驱动，全链路照常可跑。
+
+### 运行方式
+
+```bash
+python3 run.py                                  # full（默认）：可日常使用的完整 harness
+python3 run.py -p demo                          # 离线脚本演示：含崩溃恢复
 python3 run.py -p chat --prompt "run: ls"       # 单次提问
-python3 run.py -p web                           # Web UI（默认 http://127.0.0.1:8899）
-python3 run.py -p web --fake --port 0           # 覆盖插件配置（--set id.key=value 通用）
-python3 run.py -p readonly --prompt "run: echo hi"  # 只读沙箱组合
-python3 run.py -p d03-demo                          # DoD+maker-checker+重试+人工gate 演示
-python3 run.py -p d03                               # REPL 增加 /task /tasks /review 命令
-python3 run.py -p d04-demo                          # day04 演示：Loop/Graph路由/Fan-out·in/失败传播
+python3 run.py -p web                           # 仅 Web UI（http://127.0.0.1:8899）
+python3 run.py -p readonly --prompt "run: echo hi"   # 只读沙箱组合
+python3 run.py -p d03-demo                      # 任务台账演示：不过→重试→升级人工
+python3 run.py -p d04-demo                      # 编排演示：Loop/Graph/Fanout/失败传播
+python3 run.py --fake --port 0                  # 任意 profile：强制离线/随机端口
+python3 run.py --set gate.deny=["deploy/.*"]    # 通用覆盖任意插件配置
 ```
+
+### profile 一览
 
 | profile | 组合 | mode |
 |---------|------|------|
@@ -122,109 +141,99 @@ python3 run.py -p d04-demo                          # day04 演示：Loop/Graph�
 | web-fake| web，llm=fake | serve |
 | readonly| base，sandbox=read-only | chat |
 | d03     | base + gate + checker + taskboard | chat（+ /task 命令） |
-| d03-demo| d03，llm=fake | task（脚本演示：不过→重试→升级） |
-| d04     | d03 + loopctl + graph + fanout（taskboard 加掐表） | chat |
+| d03-demo| d03，llm=fake | task（脚本演示） |
+| d04     | d03 + loopctl + graph + fanout（taskboard 掐表） | chat |
 | d04-demo| d04，llm=fake | graph（脚本演示四概念） |
-| **full**| d04 + webui + instructions 文件注入 | chat —— **day05 交付形态：可日常使用** |
+| **full**| d04 + webui(:8900) + instructions 文件注入 | chat —— **交付形态** |
+
+profile 机制：`"extends"` 继承（plugins 按 id 深合并，`remove:true` 删除）、
+`{data}` 占位符 → 数据目录（默认 `.data/<profile>/`）、`--set id.key=value` 通用覆盖；
+合并结果落 `<data>/effective.json`，可脱离 profile 直接 `loader.load()` 复跑。
+
+### REPL 命令
+
+| 命令 | 作用 |
+|---|---|
+| 直接输入文本 | 聊天（工具循环自动进行） |
+| `/i` | 中断进行中的一轮（LLM 请求/子进程一并击杀，现场落盘可续） |
+| `/new [标题]` · `/list` · `/switch <id>` | 新会话 / 列会话（含状态） / 恢复任意历史会话 |
+| `/task 标题 :: 验收标准` | 投一个任务给 maker-checker 流水线（自动跑完 DoD→评审→重试→升级） |
+| `/tasks` | 台账一览 |
+| `/review <id> pass\|retry [理由]` | 人工 gate：仅 escalated 任务可裁决 |
+| `/quit` | 优雅退出 |
+
+### 任务台账（Verification 流程）
+
+```
+> /task 生成 report.md 含三级标题 :: report.md 存在且含 '# ' '## ' '### '
+  ⛭ t1 working(1) → DoD 命令核验 → checker 评审 → ✅ completed
+  （不过则自动返工，feedback 注入下轮；封顶 3 次 → escalated，等人 /review）
+```
+
+台账与审计：`<data>/tasks/ledger.jsonl` 每跳一行（working/reviewed/rejected/
+escalated/maker-timeout…），失败原因、评审 feedback 全程可回放。
+
+### Web UI
+
+- 本地：`run.py -p web`（:8899）或 full 形态自带 :8900——会话侧栏（状态徽标）、
+  聊天面板（工具调用可视化）、SSE 实时事件流、中断按钮；并发聊天返回 409（单飞）
+- API：`GET /api/state`、`POST /api/chat {prompt, session_id?}`、`POST /api/interrupt`、
+  `/api/sessions*`
 
 ### 容器化部署（Docker → Harbor → K8s）
 
 ```bash
-docker build -t 172.31.0.3:7777/dsh/mini-harness:day05 .          # Dockerfile 见仓库根
+docker build -t 172.31.0.3:7777/dsh/mini-harness:day05 .
 docker push 172.31.0.3:7777/dsh/mini-harness:day05
-kubectl apply -f deploy/k8s.yaml                                   # NodePort → http://<节点IP>:30988
+kubectl apply -f deploy/k8s.yaml        # NodePort → http://<节点IP>:30988（现网 http://172.31.1.15:30988）
 ```
 
-容器 = `full` profile serve 模式（webui host 0.0.0.0:8080）；LLM 配置经
-`deploy/settings.yaml`（ENV `DSH_SETTINGS`）注入，非 root 运行，healthcheck 打 `/api/state`。
-注：镜像固定调度到 `jsd` 节点（d-001 的 containerd 尚未适配 HTTP harbor，见 k8s.yaml 注释）。
+- 容器 = `full` profile serve 模式（`webui.host=0.0.0.0:8080`），非 root 运行，
+  healthcheck 打 `/api/state`；LLM 配置经 `deploy/settings.yaml`（ENV `DSH_SETTINGS`）注入
+- 会话/台账在 emptyDir；`Recreate` 策略；镜像仓库 `dsh` 项目，pull secret 复用命名空间
+  既有 `harbor-pull`（凭据不入库）
+- 已知事项：镜像固定调度到 `jsd` 节点——d-001 的 containerd 尚未识别 HTTP harbor
+  的 `certs.d/hosts.toml`（原因与运维建议见 [deploy/k8s.yaml](deploy/k8s.yaml) 注释）
 
-profile 机制：`"extends"` 继承（plugins 按 id 深合并，`remove:true` 删除）、
-`{data}` 占位符 → 数据目录（默认 `.data/<profile>/`）、`--set id.key=value` 通用覆盖。
-合并结果写 `<data>/effective.json`，可脱离 profile 直接 `loader.load()` 复跑。
+### 验收与示例
 
-## 与 cordis 的有意差异（最小化取舍）
-
-| 差异 | 原因 |
-|------|------|
-| 无 `isolate` 隔离作用域 | 需要 shadow map + filter 全链路，收益/复杂度比低 |
-| 无 HMR / `hot` 重载 | 依赖文件系统与模块缓存操纵 |
-| 配置校验用 callable 或 `{validate}` | cordis 走 standard-schema；接口形状保留 |
-| 事件 `bail` 要求同步监听器 | Python 无微任务语义，异步否决用 `serial` |
-| 监听器不注入 `this` | Python 闭包捕获 ctx 更地道 |
-| 插件参数 (ctx, config) 按签名适配 | JS 构造器天然容忍多余实参 |
-| loader 用 JSON | 零依赖原则（cordis 用 YAML + plugin-include） |
-| 卸载时 effect 间并发 | 与 cordis `Promise.all(_disposables)` 一致，非严格逆序 |
-
-## 目录
-
-```
-mini_cordis/     运行时（9 个模块 ≈1300 行，注释齐全）
-run.py           mini-harness 启动器：按 profiles/ 装配插件组合（demo/chat/serve）
-profiles/        base / demo / chat / web / web-fake / readonly（extends 继承+深合并）
-plugins/         运行时之上的业务插件（不属 cordis 核心）：
-                   workspace.py    —— DSH @dsh/workspace（ctx.workspaceRegistry）最小移植
-                   session.py      —— 会话完整生命周期（v2）：append-only JSONL，
-                                       active/interrupted/closed 状态机（meta 行 last-wins）、
-                                       崩溃半行丢弃、dangling tool_calls 修补、closed 终态
-                   session_types.py—— 跨模块共享异常（loader 路径加载 vs 包导入的类身份）
-                   sandbox.py      —— 执行环境限制：三模式/命令黑名单/cwd 钉住/环境清洗/
-                                      超时·取消杀进程组/输出截断（策略层，非内核隔离）
-                   llm.py          —— LLM 接入：直接消费本机 DSH 配置
-                                      （~/.dsh/settings.yaml 的 llm-pi-ai.providers +
-                                      agent-default-model，零依赖 YAML 子集解析，密钥掩码）；
-                                      auto/dsh/openai(env)/fake 四级驱动
-                   agent_loop.py   —— LLM 会话循环 + tools 注册表（只依赖 ctx.llm 契约）；
-                                       chat 跑在独立 task，interrupt() 可安全中断并落盘
-                   bash.py         —— bash 工具：经 sandbox 执行，拒绝/超时转为工具文案
-                   webui.py        —— Web 界面（零依赖 asyncio HTTP）：会话侧栏+聊天+
-                                       SSE 事件流+中断按钮；port=0 支持随机端口
-                    gate.py         —— 验证门禁（day03）：工具执行前走 tool/before-call serial
-                                        链；正则规则+外部命令钩子；一切异常 fail-closed 拒绝
-                    checker.py      —— 独立 LLM 评审员（day03）：执行体之外另起判定，只认验收
-                                        标准；输出不可解析/调用失败一律判不过（fail-closed）
-                    taskboard.py    —— 任务台账（day03）：DoD 可执行验收 + maker-checker 强制
-                                        分离 + 有限重试（默认封顶3）升级人工 gate + JSONL 审计
-                                        （day04 补 maker_timeout_s：每轮 maker 掐表）
-                    loopctl.py      —— 循环双保险（day04）：退出条件+轮数顶+超时三道保险，
-                                        reason ∈ exit-condition/max-iters/timeout/error 全可见
-                    graph.py        —— 可解释路由（day04）：边=数据且必带 because，台账回放每次
-                                        命中；no_route 回带规则表；节点失败显式 failed 不吞
-                    fanout.py       —— Fan-out/Fan-in（day04）：分支带状态（ok/异常/超时），
-                                        fan-in 收全量状态，partial 绝不报 success
-                    （day05 查漏：agent_loop 增 instructions_file 文件注入；REPL 增 /switch；
-                      full profile = 五天全部件的交付形态，run.py 默认入口）
-examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace
-tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 88 项）
+```bash
+python3 -m unittest discover -s tests -t .   # 全量 88 项（全离线确定性，CI 友好）
+python3 examples/07_minikv/app.py            # 运行时综合能力：TCP KV + 热卸载 + 级联停机
 ```
 
-## 最小 harness（run.py + profiles/）
+| 测试文件 | 项数 | 覆盖 |
+|---|---|---|
+| test_runtime / test_workspace | 17+5 | 内核语义（epoch/级联/事件/热更）与 workspace |
+| test_miniharness / test_llm_plugin | 11+7 | profile 装配链路、LLM 四级驱动 |
+| test_session_lifecycle / test_webui | 6+5 | 会话状态机与中断、HTTP/SSE/单飞 |
+| test_gate / test_checker / test_taskboard | 5+4+8 | 门禁 fail-closed、评审三失败形态、DoD/重试/人工 gate |
+| test_loopctl / test_graph / test_fanout | 5+6+6 | 三保险、because 约束与失败可见、partial 三态 |
+| test_full | 3 | 交付形态装配审计、instructions 注入、容错 |
 
-五插件即插即成的最小 agent 运行时，装配顺序即依赖序：
+---
 
-```
-session → sandbox → llm(ctx.llm) → agent-loop(provide tools) → bash(注册 bash 工具)
-（web profile 再 + webui）
-```
+## 四、与 DSH/cordis 的对照（学习映射）
 
-```
-用户输入 → session 记史 → LLM（带工具 schema）
-         ↘ tool_calls → tools.call → sandbox.exec（策略+限时+限量）
-         ↘ tool 结果回写 session → 再问 LLM → … → 纯文本回复（max_turns 熔断）
-```
+| DSH 概念 | 本工程落点 | 证据出处（docs/day0X） |
+|---|---|---|
+| `@dsh/workspace` / sandbox | workspace.py / sandbox.py（三模式/黑名单/杀进程组） | day01 |
+| session 生命周期 / 中断恢复 | session.py v2 状态机 + agent.interrupt | day02 |
+| 验证门禁 / maker-checker | gate/checker/taskboard（对照 ralph、goal 三件套） | day03 |
+| 循环有界（ralph/timeout-policy） | loopctl 三保险 | day04 |
+| 路由有据 / 汇合有态 / 失败有影（workflow "部分输出绝不会被报告为成功"） | graph（because 必填）/ fanout（partial≠ok） | day04 |
+| superagent 域模型（Ticket/Mandate/Eval/slot/RECOVERY_NOTE） | 研究原型讨论，未实现 | day05 |
 
-- **LLM 驱动自动选择**（llm 插件）：读本机 `~/.dsh/settings.yaml` 的
-  `llm-pi-ai.providers` + `agent-default-model`（本机 DSH 正在用的模型即 harness 的模型）→
-  其次 `OPENAI_API_KEY`/`OPENAI_BASE_URL` 环境变量 → 都不可用则 fake 驱动离线跑通全链路；
-  `--fake` 可强制离线。已实测用本机 DSH 默认 Qwen 端点跑完整工具循环
-- sandbox 实测拦截 `sudo rm -rf /`、fork 炸弹、`shutdown`；环境清洗防密钥外泄；
-  超时/取消均 SIGKILL 整个进程组；stdout/stderr 各限 32KB（可配）
-- **会话完整生命周期**：创建 → 运行 → 中断 → 恢复 → 结束
-  - JSONL append-only；状态以 meta 行追加（last-wins），closed 为终态拒写
-  - 崩溃恢复：尾部半行丢弃；文件状态 active 而无人持有 → 判 interrupted；
-    assistant 带 tool_calls 而 tool 响应缺失 → 补合成响应，保证消息序列 API 合法
-  - `agent.interrupt()` 取消进行中的 LLM 请求/工具执行（子进程一并击杀），
-    现场修补后以 `{'interrupted': True}` 正常返回；续聊自动回到 active
-- **Web UI**（`run.py -p web`）：零依赖 stdlib HTTP + 单页原生 JS；会话侧栏
-  （状态徽标/新建/打开/结束）、聊天面板（工具调用可视化）、SSE 实时事件流、
-  中断按钮；单飞约束（并发聊天返回 409）
+## 五、开发约定
+
+要点（全文见 [AGENTS.md](AGENTS.md)）：
+
+- **插件三件套**：`provide` 命名服务 + `def __init__(self, ctx, config=None)` +
+  模块级 `plugin = ClassName` 导出（loader 入口）
+- **Config.validate 必须返回 standard-schema 形状** `{'value': …, 'issues': […]}`——
+  返回裸 dict 会被静默忽略（day03 学费）
+- `events.serial()` 是门禁类拦截点原语：await 异步监听器、首个非 None 即否决
+- 同步铁律：向 bootcamp 克隆 rsync 必排 `.git`；`git add` 前 `git rev-parse
+  --show-toplevel` 核验仓库边界；提交信息 `dayNN:: 中文总结` 单行
+- 与 cordis 的有意差异：无 isolate/HMR、事件 `bail` 限同步监听器、loader 用 JSON、
+  插件参数按签名适配
