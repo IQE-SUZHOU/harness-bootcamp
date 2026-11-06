@@ -68,5 +68,12 @@
     "verification": "make check",
     "status": "not_started",
     "evidence": ""
+  },
+  {
+    "id": "F11",
+    "description": "D2 状态持久化：流水线检查点原子落盘，进程被杀后重启从断点续跑，已完成步骤不重做，坏检查点拒绝开工",
+    "verification": "make resume",
+    "status": "passing",
+    "evidence": "2026-11-06 make resume rc=0（前2步落盘后被杀，重启自 index 续跑，3步未重做，坏JSON检查点 rc=1 拒绝开工）；make check rc=0（35 例）；quiz 5/5"
   }
 ]

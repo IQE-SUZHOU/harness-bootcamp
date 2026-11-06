@@ -2,7 +2,7 @@ PY   := python3
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 export PYTHONPATH := $(ROOT)/src
 
-.PHONY: init contract test check quiz audit ablate restore start finish clean
+.PHONY: init contract test check quiz audit ablate restore start finish resume clean
 
 init: ## 环境自检：必需工具缺失即失败，不装不做兜底
 	@bash $(ROOT)/init.sh
@@ -32,6 +32,9 @@ start: ## 上班
 
 finish: ## 下班
 	@$(PY) $(ROOT)/scripts/session.py finish
+
+resume: ## D2 状态持久化演示：杀进程后从检查点续跑（PASS 才 rc=0）
+	@$(PY) $(ROOT)/scripts/state_demo.py demo
 
 clean: ## 清缓存与实验残留（恢复后才允许清）
 	@$(PY) $(ROOT)/scripts/ablate.py --restore

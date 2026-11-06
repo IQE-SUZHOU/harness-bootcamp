@@ -26,6 +26,7 @@
 - 全新会话测试五问：`make quiz`
 - 五元组打分 + 门禁负向自测：`make audit`
 - 消融实验：`make ablate`
+- D2 中断恢复演示：`make resume`
 
 ## 专题文档
 按需加载，agent 只在任务相关时读对应一篇：
