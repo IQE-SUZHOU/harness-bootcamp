@@ -1,0 +1,14 @@
+# mini-harness 容器 settings（LLM 指向集群可达的 Qwen，格式为 llm.py 的 YAML 子集）
+llm-pi-ai:
+  providers:
+    qwen38-flash-10:
+      displayName: Qwen3.8 Flash (d-001 .10:8099)
+      api: openai-completions
+      baseURL: http://172.31.8.10:8099/v1
+      headers:
+        Authorization: Bearer not-needed
+      models:
+        - id: Qwen3.8-Flash-Next-UD-Q4_K_XL
+agent-default-model:
+  provider: qwen38-flash-10
+  model: Qwen3.8-Flash-Next-UD-Q4_K_XL

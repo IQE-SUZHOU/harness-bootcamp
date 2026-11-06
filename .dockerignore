@@ -1,0 +1,11 @@
+.data/
+.demo/
+.sessions/
+__pycache__/
+*.pyc
+.git/
+docs/
+tests/
+.dockerignore
+Dockerfile
+deploy/k8s.yaml

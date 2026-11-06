@@ -1,0 +1,58 @@
+# mini-harness Web UI on K8s（Harbor: 172.31.0.3:7777/dsh，节点 d-001 172.31.8.10）
+#
+# 前置（一次性，凭据不入库）：
+#   kubectl -n dsh create secret docker-registry harbor-pull \
+#     --docker-server=172.31.0.3:7777 --docker-username=admin \
+#     --docker-password='<harbor 密码>'    # dsh 命名空间已存在则跳过
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-harness-web
+  namespace: dsh
+  labels: {app: mini-harness-web}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}          # 数据在 emptyDir：滚动更新无意义，直接重建
+  selector: {matchLabels: {app: mini-harness-web}}
+  template:
+    metadata: {labels: {app: mini-harness-web}}
+    spec:
+      # d-001 的 containerd 未识别 HTTP harbor（hosts.toml 不在其生效 config_path），
+      # jsd 节点 certs.d 单路径配置正常且可达 LLM(172.31.8.10:8099)——固定到 jsd；
+      # 后续运维项：修 d-001 的 /etc/containerd/config.toml registry.config_path
+      nodeSelector: {kubernetes.io/hostname: jsd}
+      imagePullSecrets: [{name: harbor-pull}]
+      containers:
+        - name: web
+          image: 172.31.0.3:7777/dsh/mini-harness:day05
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - {name: DSH_SETTINGS, value: /app/deploy/settings.yaml}
+          volumeMounts:
+            - {name: data, mountPath: /app/.data}   # 会话/台账活在重启之间
+          readinessProbe:
+            httpGet: {path: /api/state, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /api/state, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-harness-web
+  namespace: dsh
+  labels: {app: mini-harness-web}
+spec:
+  selector: {app: mini-harness-web}
+  ports:
+    - {name: http, port: 8080, targetPort: http, nodePort: 30988}
+  type: NodePort          # 集群无 ingress：浏览器直达 http://172.31.8.10:30988

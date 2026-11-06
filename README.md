@@ -127,6 +127,18 @@ python3 run.py -p d04-demo                          # day04 演示：Loop/Graph�
 | d04-demo| d04，llm=fake | graph（脚本演示四概念） |
 | **full**| d04 + webui + instructions 文件注入 | chat —— **day05 交付形态：可日常使用** |
 
+### 容器化部署（Docker → Harbor → K8s）
+
+```bash
+docker build -t 172.31.0.3:7777/dsh/mini-harness:day05 .          # Dockerfile 见仓库根
+docker push 172.31.0.3:7777/dsh/mini-harness:day05
+kubectl apply -f deploy/k8s.yaml                                   # NodePort → http://<节点IP>:30988
+```
+
+容器 = `full` profile serve 模式（webui host 0.0.0.0:8080）；LLM 配置经
+`deploy/settings.yaml`（ENV `DSH_SETTINGS`）注入，非 root 运行，healthcheck 打 `/api/state`。
+注：镜像固定调度到 `jsd` 节点（d-001 的 containerd 尚未适配 HTTP harbor，见 k8s.yaml 注释）。
+
 profile 机制：`"extends"` 继承（plugins 按 id 深合并，`remove:true` 删除）、
 `{data}` 占位符 → 数据目录（默认 `.data/<profile>/`）、`--set id.key=value` 通用覆盖。
 合并结果写 `<data>/effective.json`，可脱离 profile 直接 `loader.load()` 复跑。
