@@ -1,0 +1,66 @@
+   - session
+   0 permission/preset
+   1 sandbox/mode
+   2 approval/policy
+   3 agent/inbox/spliced
+   4 turn/start                               turn 1
+   5 agent/inbox/spliced
+   6 step/start                               turn 1 step 1
+   7 system/message
+   8 user/message                             source=user
+   9 user/message                             source=agent-instructions
+  10 user/message                             source=runtime-context
+  11 user/message                             source=skill-catalog
+  12 request/header
+  13 request/context
+  14 session/title
+  15 session/title-llm-request
+  16 session-log-deepseek/delivery-accepted
+  17 session-log-deepseek/delivery-accepted
+  18 session/title
+  19 assistant/message                        cacheRead=5248 cacheWrite=0
+  20 tool/call                                bash callId=call_00_VbDldEhWabCoA21hVHm41528
+  21 tool/result                              id=21bcf846-ceed-46ae-893c-713fa02d94b5 error=False
+  22 step/end                                 turn 1 step 1
+  23 step/start                               turn 1 step 2
+  24 session-log-deepseek/delivery-accepted
+  25 assistant/message                        cacheRead=6784 cacheWrite=0
+  26 tool/call                                job_output callId=call_00_MdoBrJfDK2CyHVpWS5So3213
+  27 tool/result                              id=interrupted-tool-result-call_00_MdoBrJfDK2CyHVpWS5So3213-27 error=True
+  28 step/end                                 turn 1 step 2
+  29 turn/end                                 turn 1 reason=interrupted
+  30 session/end-seed
+  31 agent/inbox/spliced
+  32 turn/start                               turn 2
+  33 agent/inbox/spliced
+  34 step/start                               turn 2 step 1
+  35 user/message                             source=user
+  36 request/header
+  37 session-log-deepseek/delivery-accepted
+  38 assistant/message                        cacheRead=7040 cacheWrite=0
+  39 tool/call                                job_output callId=call_00_LBemjn2o6HnCbmGZtV9M8652
+  40 tool/result                              id=64e44c28-c244-4ee2-a832-38b353bb6200 error=True
+  41 step/end                                 turn 2 step 1
+  42 step/start                               turn 2 step 2
+  43 session-log-deepseek/delivery-accepted
+  44 assistant/message                        cacheRead=7040 cacheWrite=0
+  45 tool/call                                job_list callId=call_00_80rbstsMWcBROXnLvdiQ2834
+  46 tool/result                              id=0d30472b-0af6-4c53-98a1-2465522c865c error=False
+  47 step/end                                 turn 2 step 2
+  48 step/start                               turn 2 step 3
+  49 session-log-deepseek/delivery-accepted
+  50 assistant/message                        cacheRead=7296 cacheWrite=0
+  51 tool/call                                bash callId=call_00_qtYZDuDj9NWLGzDHMUIC1872
+  52 tool/result                              id=452dbfc3-e2e0-40ea-9f28-317040f623d1 error=False
+  53 step/end                                 turn 2 step 3
+  54 step/start                               turn 2 step 4
+  55 session-log-deepseek/delivery-accepted
+  56 assistant/message                        cacheRead=7552 cacheWrite=0
+  57 tool/call                                job_output callId=call_00_UceSX4hO8r5BsxsTmq8d0174
+  58 tool/result                              id=909f61a2-962a-4238-9d7d-b3ac7934da2f error=False
+  59 step/end                                 turn 2 step 4
+  60 step/start                               turn 2 step 5
+  61 session-log-deepseek/delivery-accepted
+  62 assistant/message                        cacheRead=7680 cacheWrite=0
+  63 step/end                                 turn 2 step 5
+  64 turn/end                                 turn 2 reason=completed

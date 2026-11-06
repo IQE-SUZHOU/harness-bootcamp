@@ -1,0 +1,28 @@
+   - session
+   0 permission/preset
+   1 sandbox/mode
+   2 approval/policy
+   3 agent/inbox/spliced
+   4 turn/start                               turn 1
+   5 agent/inbox/spliced
+   6 step/start                               turn 1 step 1
+   7 system/message
+   8 user/message                             source=user
+   9 user/message                             source=agent-instructions
+  10 user/message                             source=runtime-context
+  11 user/message                             source=skill-catalog
+  12 request/header
+  13 request/context
+  14 session/title
+  15 session/title-llm-request
+  16 session-log-deepseek/delivery-accepted
+  17 session-log-deepseek/delivery-accepted
+  18 session/title
+  19 assistant/message                        cacheRead=5248 cacheWrite=0
+  20 tool/call                                bash callId=call_00_VbDldEhWabCoA21hVHm41528
+  21 tool/result                              id=21bcf846-ceed-46ae-893c-713fa02d94b5 error=False
+  22 step/end                                 turn 1 step 1
+  23 step/start                               turn 1 step 2
+  24 session-log-deepseek/delivery-accepted
+  25 assistant/message                        cacheRead=6784 cacheWrite=0
+  26 tool/call                                job_output callId=call_00_MdoBrJfDK2CyHVpWS5So3213

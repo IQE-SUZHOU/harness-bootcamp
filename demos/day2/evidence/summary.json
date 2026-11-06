@@ -1,0 +1,58 @@
+{
+  "repo": "<repo-root>",
+  "dsh_version": "0.2.0-rc.2",
+  "project_key": "--<project-root-slug>--",
+  "normal_session": {
+    "session_id": "session-92a9ff44-7b78-4b1f-a278-259a6a5d4941",
+    "events": 23,
+    "last_seq": 21,
+    "baseline_instruction_occurrences": 1,
+    "resume_cache_read_tokens": 6528,
+    "resume_events": 34
+  },
+  "interrupted_session": {
+    "session_id": "session-b6f4f8fa-ea26-44e9-b7ab-ecb0f523ac44",
+    "last_seq_before_resume": 26,
+    "open_turns": [
+      1
+    ],
+    "open_steps": [
+      [
+        1,
+        2
+      ]
+    ],
+    "open_tool_calls": [
+      {
+        "callId": "call_00_MdoBrJfDK2CyHVpWS5So3213",
+        "name": "job_output"
+      }
+    ]
+  },
+  "after_resume": {
+    "interrupted_tool_results": [
+      "interrupted-tool-result-call_00_MdoBrJfDK2CyHVpWS5So3213-27"
+    ],
+    "interrupted_turn_ends": [
+      29
+    ],
+    "open_turns": [],
+    "open_steps": [],
+    "baseline_instruction_occurrences": 1
+  },
+  "checks": {
+    "session_file_created": true,
+    "event_log_readable": true,
+    "normal_resume_lossless": true,
+    "kv_cache_reused": true,
+    "baseline_injected_once": true,
+    "interrupted_turn_visible": true,
+    "interrupted_step_visible": true,
+    "interrupted_tool_call_visible": true,
+    "interrupted_tool_result_closer": true,
+    "interrupted_turn_end_closer": true,
+    "open_turns_closed": true,
+    "open_steps_closed": true,
+    "baseline_still_once": true
+  }
+}
