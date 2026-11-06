@@ -1,0 +1,6 @@
+__pycache__/
+.env
+.env.*
+!.env.md
+guide/state.json
+guide/state.json.tmp
