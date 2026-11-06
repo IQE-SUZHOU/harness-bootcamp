@@ -1,0 +1,13 @@
+{
+  "name": "d03",
+  "extends": "base",
+  "mode": "chat",
+  "plugins": [
+    {"id": "gate", "module": "plugins/gate.py",
+     "config": {"deny": ["\\.env\\b", "\\bchmod\\s+\\+x"]} ,
+     "hooks": []},
+    {"id": "checker", "module": "plugins/checker.py", "config": {}},
+    {"id": "taskboard", "module": "plugins/taskboard.py",
+     "config": {"dir": "{data}/tasks", "max_retries": 3}}
+  ]
+}

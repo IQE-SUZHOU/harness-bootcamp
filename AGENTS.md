@@ -7,7 +7,8 @@
 参考 DeepSeek Harness 内置 cordis 源码（`dsh_back/vendor/cordis`）实现的**最小 harness 教学项目**：
 
 - `mini_cordis/` —— 最小插件化运行时（epoch 生命周期 / DI / 事件 / 配置 / loader）
-- `plugins/` —— 运行时之上的业务插件（workspace / session / sandbox / llm / agent_loop / bash / webui）
+- `plugins/` —— 运行时之上的业务插件（workspace / session / sandbox / llm / agent_loop / bash / webui /
+  gate / checker / taskboard —— 后三者为 day03：验证门禁 / 独立评审 / 任务台账）
 - `run.py` + `profiles/` —— mini-harness 启动器：**插件组合由 profile 配置决定**
   （extends 继承、plugins 按 id 深合并、`{data}` 占位、`--set id.key=value` 覆盖；
   mode = demo / chat / serve），不再往 examples/ 里加固定装配脚本

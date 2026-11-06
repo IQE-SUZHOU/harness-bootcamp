@@ -51,10 +51,21 @@ class ToolRegistry(Service):
         return [t['schema'] for t in self._tools.values()]
 
     async def call(self, name: str, arguments: dict) -> str:
-        """工具异常不打断循环，转成错误文案喂回模型（对齐 harness 行为）。"""
+        """工具异常不打断循环，转成错误文案喂回模型（对齐 harness 行为）。
+
+        执行前先走 `tool/before-call` serial 门禁链（gate 插件挂这里）：
+        任一监听器返回非 None = 拒绝，工具体不执行；门禁链自身异常也按
+        拒绝处理（fail-closed，对齐 DSH approval/auto-review）。
+        """
         t = self._tools.get(name)
         if t is None:
             return f'Error: unknown tool "{name}"'
+        try:
+            verdict = await self.ctx.serial('tool/before-call', name, arguments)
+        except Exception as e:  # noqa: BLE001 —— 门禁坏了不许默认放行
+            return f'[gate 拒绝] 门禁链异常（fail-closed）：{type(e).__name__}: {e}'
+        if verdict is not None:
+            return f'[gate 拒绝] {verdict}'
         try:
             result = t['handler'](arguments)
             if asyncio.iscoroutine(result):

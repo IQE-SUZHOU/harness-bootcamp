@@ -1,0 +1,8 @@
+{
+  "name": "d03-demo",
+  "extends": "d03",
+  "mode": "task",
+  "plugins": [
+    {"id": "llm", "config": {"driver": "fake"}}
+  ]
+}

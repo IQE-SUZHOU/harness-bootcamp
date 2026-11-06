@@ -163,7 +163,43 @@ async def mode_demo(root, data: pathlib.Path):
     return True    # 已自行 shutdown
 
 
+def make_agent_maker(root):
+    """taskboard 的 maker：把任务+验收标准（+上轮返工反馈）交给 agent。"""
+    agent = root.get('agent')
+
+    async def maker(task, feedback, sess):
+        p = (f'完成以下任务并通过验收：\n任务：{task["title"]}\n'
+             f'验收标准：{task["acceptance"]}\n'
+             f'（工作目录就是沙箱 workspace，用 bash 直接落地）')
+        if feedback:
+            p += f'\n【上一轮评审未通过，请针对性返工】{feedback}'
+        r = await agent.chat(p, session=sess)
+        return r['final']
+    return maker
+
+
+async def mode_task(root, data: pathlib.Path):
+    """day03 演示：DoD + maker-checker + 有限重试 + 升级人工 gate。"""
+    tasks = root.get('tasks')
+    t = tasks.create('在 workspace 创建 hello.txt，内容为 world',
+                     'workspace 根下存在 hello.txt 且包含 world',
+                     dod_command='test -f hello.txt && grep -q world hello.txt')
+    print(f'📋 任务 {t["id"]}：{t["title"]}\n   DoD: {t["dod_command"]}')
+    v = await tasks.run(t['id'], make_agent_maker(root))
+    print(f'\n== 终态：{v["status"]}（尝试 {v["attempts"]} 次）')
+    if v['status'] == 'escalated':
+        print(f'🙋 尝试次数封顶 → 已升级人工 gate。机器路径已封死，人工处理：')
+        print(f'   python3 run.py -p d03   进 REPL 后：/tasks 查看，')
+        print(f'   /review {t["id"]} pass 终结 · /review {t["id"]} retry <理由> 恢复再跑')
+    print('\n—— 台账（ledger.jsonl）——')
+    for row in (data / 'tasks' / 'ledger.jsonl').read_text(
+            encoding='utf-8').splitlines():
+        j = json.loads(row)
+        print(f"  {j['ts']}  {j['event']:<15} {j['id']}  attempts={j['attempts']}")
+
+
 async def mode_chat(root, prompt=None):
+    tasks = root.get('tasks', strict=False)
     if prompt:
         r = await root.get('agent').chat(prompt)
         print(f'🤖 {r["final"]}')
@@ -172,7 +208,10 @@ async def mode_chat(root, prompt=None):
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
     agent, sess = root.get('agent'), root.get('session')
-    print('mini-harness REPL：直接输入聊天；/i 中断 · /new 新会话 · /list 列表 · /quit 退出')
+    tip = '/i 中断 · /new 新会话 · /list 列表'
+    if tasks:
+        tip += ' · /task 标题::验收标准 · /tasks · /review <id> pass|retry [理由]'
+    print(f'mini-harness REPL：直接输入聊天；{tip} · /quit 退出')
     while True:
         line = (await reader.readline()).decode().rstrip('\n')
         if not line:
@@ -188,6 +227,29 @@ async def mode_chat(root, prompt=None):
         if line == '/list':
             for s in sess.list():
                 print(f'  [{s["status"]:>11}] {s["id"]}  {s["messages"]} 条 {s["title"]}')
+            continue
+        if tasks and line.startswith('/task '):
+            title, _, acc = line[6:].partition('::')
+            t = tasks.create(title.strip(), acc.strip() or title.strip())
+            v = await tasks.run(t['id'], make_agent_maker(root))
+            icon = '✅' if v['status'] == 'completed' else '🙋 升级人工'
+            print(f'{icon} {v["id"]} → {v["status"]}（{v["attempts"]} 次）'
+                  f'：{v["feedback"] or ""}')
+            continue
+        if tasks and line == '/tasks':
+            for t in tasks.list():
+                print(f'  [{t["status"]:>10}] {t["id"]} ×{t["attempts"]} {t["title"]}')
+            continue
+        if tasks and line.startswith('/review '):
+            parts = line[8:].split(None, 2)
+            if len(parts) >= 2:
+                outcome = 'success' if parts[1] == 'pass' else 'retry'
+                try:
+                    v = tasks.human_settle(parts[0], outcome,
+                                           parts[2] if len(parts) > 2 else '')
+                    print(f'🙋 人工处置完成：{v["id"]} → {v["status"]}')
+                except Exception as e:  # noqa: BLE001
+                    print(f'⚠ {e}')
             continue
         print(f'👤 {line}')
         try:
@@ -220,6 +282,8 @@ async def amain(args) -> int:
     try:
         if mode == 'demo':
             done = await mode_demo(root, data)
+        elif mode == 'task':
+            await mode_task(root, data)
         elif mode == 'serve':
             await mode_serve(root)
         else:
