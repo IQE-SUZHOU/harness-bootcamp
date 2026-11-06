@@ -180,6 +180,8 @@ plugins/         运行时之上的业务插件（不属 cordis 核心）：
                                         命中；no_route 回带规则表；节点失败显式 failed 不吞
                     fanout.py       —— Fan-out/Fan-in（day04）：分支带状态（ok/异常/超时），
                                         fan-in 收全量状态，partial 绝不报 success
+                    （day05 查漏：agent_loop 增 instructions_file 文件注入；REPL 增 /switch；
+                      full profile = 五天全部件的交付形态，run.py 默认入口）
 examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace
 tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 88 项）
 ```
