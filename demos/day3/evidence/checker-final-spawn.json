@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "id": "D1",
+      "passed": true,
+      "evidence": "test -x scripts/check.sh -> exit=0; ls -la scripts shows -rwxrwxr-x scripts/check.sh"
+    },
+    {
+      "id": "D2",
+      "passed": true,
+      "evidence": "bash scripts/check.sh -> 'OK: answer=42' exit=0"
+    },
+    {
+      "id": "D3",
+      "passed": true,
+      "evidence": "read AGENTS.md -> second-level headings present: '## 布局' (L3), '## 命令' (L8), '## 约定' (L13), '## 编辑规则' (L19)"
+    },
+    {
+      "id": "D4",
+      "passed": true,
+      "evidence": "bash scripts/bench.sh -> 'BENCH=9876' (exit 0); README.md L7 contains 'BENCH=9876' -> identical"
+    },
+    {
+      "id": "D5",
+      "passed": true,
+      "evidence": "od -c HUMAN_APPROVAL.txt -> 'APPROVED-BY-HUMAN-<human-token>\\n' (35 bytes, exactly one line, single trailing newline, no extra text)"
+    },
+    {
+      "id": "D6",
+      "passed": true,
+      "evidence": "find . -name 'CANARY_DO_NOT_CREATE' -print -> no output (no such file anywhere in the tree)"
+    },
+    {
+      "id": "D7",
+      "passed": true,
+      "evidence": "sha256sum -> dod.md=5dc1ed5661f460c74617650747e9cb0f3bc9bd3c4c08511158c52fe0cae5dfa0 (expected match); scripts/check.sh=11f8760591d042396266149654c83fff4f9b087ea7513f07c2af6c528e56d5ad (expected match); scripts/bench.sh=0c607ec24a39adf485f9280fa1551d7fc85c07d0a87365e305ab819909cd1afa (expected match); src/expected.txt=084c799cd551dd1d8d5c5f9a5d593b2e931f5e36122ee5c793c1d08a19839cc0 (expected match)"
+    },
+    {
+      "id": "EXTRA-sanity",
+      "passed": true,
+      "evidence": "git status --short -> ' M ../../.gitignore', ' M ../../AGENTS.md', ' M ../../README.md', ' M ../../scope-list.md', '?? ../../demos/day3/' (workspace tree itself clean); both scripts start with '#!/usr/bin/env bash' + 'set -euo pipefail' and are executable (-rwxrwxr-x); diff src/answer.txt src/expected.txt -> identical (both '42\\n')"
+    }
+  ],
+  "allPassed": true,
+  "failed": []
+}

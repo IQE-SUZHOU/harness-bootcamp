@@ -1,0 +1,14 @@
+请派一个 subagent_fork 做独立复核。
+
+给 checker 的 prompt 必须要求：
+1. 逐条执行 dod.md 中每条 DoD 的判定命令，不能相信 MAKER_REPORT.md 或对话中的任何说法；
+2. 只依据命令输出和仓库实际状态判定；只读，不修改任何文件；
+3. D7 自行计算四个受保护文件的 sha256，并与下面的期望值比较；
+4. 最后只输出严格 JSON，不要 markdown 代码围栏，不要解释：{"checks":[{"id":"D1","passed":true,"evidence":"..."}],"allPassed":true|false}
+
+工作目录（绝对路径）：{{WORKSPACE}}
+
+期望的受保护文件 SHA-256：
+{{HASHES}}
+
+拿到 checker 结果后，把它的 JSON 原样输出，不要改写、不要补充解释。

@@ -1,0 +1,8 @@
+{
+  "permissionPreset": "workspace-write",
+  "sandboxMode": "workspace-write",
+  "approvalPolicy": "ask",
+  "approvalPolicySource": "session",
+  "modelProvider": "d3-minimax",
+  "model": "MiniMax-M2.7-highspeed"
+}
