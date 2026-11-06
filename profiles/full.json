@@ -1,0 +1,10 @@
+{
+  "name": "full",
+  "extends": "d04",
+  "mode": "chat",
+  "plugins": [
+    {"id": "agent-loop", "config": {"instructions_file": "profiles/instructions.md"}},
+    {"id": "webui", "module": "plugins/webui.py",
+     "config": {"host": "127.0.0.1", "port": 8900}}
+  ]
+}

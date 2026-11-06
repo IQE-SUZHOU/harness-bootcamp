@@ -24,7 +24,8 @@
 ```bash
 # Python 3.12+，零第三方依赖（不要 pip install 任何东西进核心链路）
 python3 -m unittest discover -s tests -t .          # 全量测试
-python3 run.py                                      # demo profile（离线脚本演示+恢复）
+python3 run.py                                      # full profile（可日常使用的完整 harness）
+python3 run.py -p demo                              # 离线脚本演示（含崩溃恢复）
 python3 run.py -p chat --prompt "run: ls"           # 单次提问（自动读本机 DSH LLM 配置）
 python3 run.py -p web                               # Web UI（:8899；--fake --port 0 可覆盖）
 ```

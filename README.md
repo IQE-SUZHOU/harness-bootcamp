@@ -88,7 +88,8 @@ python3 tests/test_taskboard.py     # taskboard 台账 8 项（DoD/maker-checker
 python3 tests/test_loopctl.py       # loopctl 循环双保险 5 项（退出条件/轮顶/超时掐表）
 python3 tests/test_graph.py         # graph 可解释路由 6 项（because强制/no_route/失败可见）
 python3 tests/test_fanout.py        # fanout 扇出扇入 6 项（partial三态/并发有界/汇合留证）
-python3 -m unittest discover -s tests -t .   # 一次跑全部（85 项）
+python3 tests/test_full.py          # full 交付形态 3 项（全家桶装配/instructions注入/容错）
+python3 -m unittest discover -s tests -t .   # 一次跑全部（88 项）
 ```
 
 07 是唯一"像真应用"的示例：loader 装配 store（Service+Config 校验+FIFO 逐出）
@@ -100,8 +101,9 @@ python3 -m unittest discover -s tests -t .   # 一次跑全部（85 项）
 插件组合由 profile 决定，不再写死在某个示例脚本里：
 
 ```bash
-python3 run.py                                  # demo profile：离线脚本演示+恢复
-python3 run.py -p chat                          # 交互 REPL（/i 中断 /new /list /quit）
+python3 run.py                                  # full：可日常使用的完整 harness（REPL+WebUI）
+python3 run.py -p demo                          # 离线脚本演示：崩溃恢复
+python3 run.py -p chat                          # 交互 REPL（/i 中断 /new /list /switch 恢复 /task /quit）
 python3 run.py -p chat --prompt "run: ls"       # 单次提问
 python3 run.py -p web                           # Web UI（默认 http://127.0.0.1:8899）
 python3 run.py -p web --fake --port 0           # 覆盖插件配置（--set id.key=value 通用）
@@ -123,6 +125,7 @@ python3 run.py -p d04-demo                          # day04 演示：Loop/Graph�
 | d03-demo| d03，llm=fake | task（脚本演示：不过→重试→升级） |
 | d04     | d03 + loopctl + graph + fanout（taskboard 加掐表） | chat |
 | d04-demo| d04，llm=fake | graph（脚本演示四概念） |
+| **full**| d04 + webui + instructions 文件注入 | chat —— **day05 交付形态：可日常使用** |
 
 profile 机制：`"extends"` 继承（plugins 按 id 深合并，`remove:true` 删除）、
 `{data}` 占位符 → 数据目录（默认 `.data/<profile>/`）、`--set id.key=value` 通用覆盖。
@@ -178,7 +181,7 @@ plugins/         运行时之上的业务插件（不属 cordis 核心）：
                     fanout.py       —— Fan-out/Fan-in（day04）：分支带状态（ok/异常/超时），
                                         fan-in 收全量状态，partial 绝不报 success
 examples/        01-05 单主题示例；06 loader；07 minikv；08 workspace
-tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 85 项）
+tests/           验收测试（unittest.IsolatedAsyncioTestCase，共 88 项）
 ```
 
 ## 最小 harness（run.py + profiles/）

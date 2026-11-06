@@ -86,6 +86,20 @@ class Agent(Service):
         cfg = config or {}
         self.max_turns = cfg.get('max_turns', 8)
         self.system = cfg.get('system', DEFAULT_SYSTEM)
+        # instructions（day05 查漏）：行为约定放文件而不是塞配置——对齐 DSH
+        # superagent 的 prompts/*.md 思路（"团队用语言描述的行为是提示词，不是设置"）。
+        # 启动时读取并拼进 system；文件缺失如实告警，不 crash。
+        f = cfg.get('instructions_file')
+        if f:
+            import pathlib
+            p = pathlib.Path(f)
+            if p.is_file():
+                self.system += f'\n\n--- instructions: {p} ---\n' + \
+                    p.read_text(encoding='utf-8')
+                ctx.logger('agent').info('instructions 注入：%s (%d 字)',
+                                         p, p.stat().st_size)
+            else:
+                ctx.logger('agent').warn('instructions_file 不存在：%s（忽略）', p)
         self.tools = ToolRegistry(ctx)          # provide='tools'
         self.llm = ctx.llm                      # 契约：chat(messages, tools)→message
         # 测试 seam：可直接给实例赋假驱动覆盖 self.llm

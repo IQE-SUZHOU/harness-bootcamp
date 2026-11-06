@@ -2,7 +2,8 @@
 """mini-harness 启动器 —— 按 profile 配置装配不同的插件组合。
 
 用法：
-  python3 run.py                                  # 默认 demo profile（离线脚本演示）
+  python3 run.py                                  # 默认 full：全部治理件的可日常使用 harness
+  python3 run.py -p demo                          # 离线脚本演示（含崩溃恢复）
   python3 run.py -p web                           # Web UI（浏览器打开提示的地址）
   python3 run.py -p chat                          # 交互 REPL（/i 中断 /new /list /quit）
   python3 run.py -p chat --prompt "列一下目录"     # 单次提问
@@ -275,7 +276,7 @@ async def mode_chat(root, prompt=None):
     reader = asyncio.StreamReader()
     await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
     agent, sess = root.get('agent'), root.get('session')
-    tip = '/i 中断 · /new 新会话 · /list 列表'
+    tip = '/i 中断 · /new 新会话 · /list 列表 · /switch <id> 恢复'
     if tasks:
         tip += ' · /task 标题::验收标准 · /tasks · /review <id> pass|retry [理由]'
     print(f'mini-harness REPL：直接输入聊天；{tip} · /quit 退出')
@@ -294,6 +295,13 @@ async def mode_chat(root, prompt=None):
         if line == '/list':
             for s in sess.list():
                 print(f'  [{s["status"]:>11}] {s["id"]}  {s["messages"]} 条 {s["title"]}')
+            continue
+        if line.startswith('/switch '):        # day05 查漏：恢复任意会话
+            try:
+                s = sess.open(line[8:].strip())
+                print(f'↩︎ 已恢复 {s.id}（{s.status}，{len(s.messages)} 条）')
+            except Exception as e:  # noqa: BLE001
+                print(f'⚠ {type(e).__name__}: {e}')
             continue
         if tasks and line.startswith('/task '):
             title, _, acc = line[6:].partition('::')
@@ -368,7 +376,7 @@ async def amain(args) -> int:
 
 def main():
     ap = argparse.ArgumentParser(description='按 profile 启动 mini-harness')
-    ap.add_argument('-p', '--profile', default='demo',
+    ap.add_argument('-p', '--profile', default='full',
                     help=f'profile 名（{", ".join(p.stem for p in sorted(PROFILES.glob("*.json")))}）')
     ap.add_argument('--data', help='数据目录（默认 .data/<profile>/）')
     ap.add_argument('--mode', choices=['demo', 'chat', 'serve', 'task', 'graph'],
