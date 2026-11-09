@@ -16,7 +16,6 @@ run_case() {
   shift
   rm -rf "$work/run"
   mkdir -p "$work/run"
-  cp "$repo_root/src/harness.py" "$work/run/harness.py"
 
   local port_file="$work/port"
   rm -f "$port_file"
@@ -31,10 +30,16 @@ run_case() {
   echo "=== $title ==="
   local rc=0
   BASE_URL="http://127.0.0.1:$port/v1" API_KEY=fake MODEL=fake \
-    python3 "$work/run/harness.py" >"$work/run/out.log" 2>&1 || rc=$?
-  sed -n '1,6p' "$work/run/out.log"
-  echo "..."
-  tail -2 "$work/run/out.log"
+    python3 "$repo_root/src/harness.py" \
+      --task "$repo_root/tasks/demo_20.json" \
+      --state "$work/run/state.json" >"$work/run/out.log" 2>&1 || rc=$?
+  if [[ "$(wc -l <"$work/run/out.log")" -le 8 ]]; then
+    cat "$work/run/out.log"
+  else
+    sed -n '1,6p' "$work/run/out.log"
+    echo "..."
+    tail -2 "$work/run/out.log"
+  fi
   echo "exit=$rc"
 
   python3 "$repo_root/src/verify.py" "$work/run/state.json" >/dev/null

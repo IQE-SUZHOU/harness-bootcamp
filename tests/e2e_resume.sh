@@ -19,7 +19,8 @@ fail() {
   exit 1
 }
 
-cp "$repo_root/src/harness.py" "$work/harness.py"
+task="$repo_root/tasks/demo_20.json"
+state="$work/state.json"
 
 if [[ "$mode" == "fake" ]]; then
   port_file="$work/port"
@@ -49,7 +50,7 @@ PY
 
 echo "[e2e] mode=$mode, kill at step $kill_at, resume timeout ${run_timeout}s"
 
-python3 "$work/harness.py" >"$work/run1.log" 2>&1 &
+python3 "$repo_root/src/harness.py" --task "$task" --state "$state" >"$work/run1.log" 2>&1 &
 pid=$!
 
 killed_at=0
@@ -76,7 +77,7 @@ fi
 echo "[e2e] killed run #1 at step $killed_at (mode=$mode)"
 echo "[e2e] resuming; real-mode calls may take seconds to minutes on a busy gateway"
 
-timeout "$run_timeout" python3 "$work/harness.py" >"$work/run2.log" 2>&1 &
+timeout "$run_timeout" python3 "$repo_root/src/harness.py" --task "$task" --state "$state" >"$work/run2.log" 2>&1 &
 resume_pid=$!
 last=0
 while kill -0 "$resume_pid" 2>/dev/null; do
