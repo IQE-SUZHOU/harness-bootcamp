@@ -19,6 +19,7 @@
 | `continuity.py` | `split_sections` / `validate_progress` / `latest_commit` / `parse_decisions` / `validate_decisions` / `handoff_fields` / `validate_handoff` / `rebuild_cost` | `ContinuityError` |
 | `feature_list.py` | `load_features` / `validate_features` / `promote` | `FeatureListError` |
 | `run_state.py` | `validate_run_state` / `next_step` / `mark_done` / `is_complete` | `RunStateError` |
+| `artifact_check.py` | `expected_chain` / `check_artifact` / `check_run` | `ArtifactCheckError` |
 
 ## 已知设计取舍
 

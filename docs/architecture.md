@@ -23,12 +23,14 @@ flowchart TD
 | `src/harness/continuity.py` | `PROGRESS.md` 小节校验、commit 提取、`DECISIONS.md` 解析、交接四字段、重建成本估算 | 状态（L05） |
 | `src/harness/feature_list.py` | 功能清单状态机：状态枚举、WIP=1、passing 必须绑定验证命令与证据 | 范围与反馈（L01/L02） |
 | `src/harness/run_state.py` | 运行态检查点 schema 校验与续跑决策（next_step / mark_done），纯逻辑不落盘 | 状态（D2/L03） |
+| `src/harness/artifact_check.py` | 产出物期望链重算与独立校验（check_artifact / check_run），错误附修复动作 | 反馈（D3/L09） |
 | `scripts/check_contract.py` | 把上面三个模块的判断合成一个 rc，外加无密钥与消融残留检查 | 反馈 |
 | `scripts/onboarding_quiz.py` | 全新会话测试五问的自动判定 | 指令 + 状态 |
 | `scripts/audit_score.py` | 五元组 0-5 打分，输出最低分项 | 全子系统 |
 | `scripts/ablate.py` | 消融实验脚手架，移走工件、跑探针、强制恢复 | 实验 |
 | `scripts/session.py` | 上班读状态并验证一致性；下班校验交接完备 | 状态 |
 | `scripts/state_demo.py` | D2 演示编排：多步流水线原子落盘、模拟 kill -9、重启续跑并断言不重做 | 状态（D2） |
+| `scripts/verify_demo.py` | D3 演示编排：maker 产出→checker 判卷→标 done；独立 verify 从 spec 重算期望链 | 反馈（D3） |
 
 ## 不做的事
 

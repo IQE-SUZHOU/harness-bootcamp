@@ -75,5 +75,12 @@
     "verification": "make resume",
     "status": "passing",
     "evidence": "2026-11-06 make resume rc=0（前2步落盘后被杀，重启自 index 续跑，3步未重做，坏JSON检查点 rc=1 拒绝开工）；make check rc=0（35 例）；quiz 5/5"
+  },
+  {
+    "id": "F12",
+    "description": "D3 验证与可靠：done 标记放在 checker 之后，verify 从 spec 独立重算期望链，半截产物/静默篡改/空口胜利全部 rc=1 拒收且报错附修复动作",
+    "verification": "make verify",
+    "status": "passing",
+    "evidence": "2026-11-06 make verify rc=0（3 场景：半截产物不认、篡改 redo 后过、空口 done 5 处拒收且报错附修复）；make check rc=0（43 例）；quiz 5/5"
   }
 ]
