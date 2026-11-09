@@ -5,7 +5,7 @@ DSH  := $(ROOT)/dsh-superagent-prototype
 BASE := 6337fc8
 N    := grep -cE
 
-.PHONY: init contract check verify verify-fake test
+.PHONY: init contract check verify verify-fake loop loop-real test
 
 init: ## 自检：设计书 / dsh 基线 commit / pnpm
 	@test -f $(SPEC) && echo "spec OK" || { echo "SPEC MISSING: $(SPEC)"; exit 1; }
@@ -35,6 +35,12 @@ verify-fake: ## 同一门禁的离线版（假 LLM，可反复回归）
 	@python3 -m unittest discover -s $(REPO)/tests -p 'test_*.py'
 	@python3 $(REPO)/tests/fault_inject.py
 	@MODE=fake bash $(REPO)/tests/e2e_resume.sh
+
+loop: ## Day4 循环演示：重试恢复 + 超限阻断（本地假模型，离线）
+	@bash $(REPO)/tests/loop_demo.sh
+
+loop-real: ## Day4 循环：真实 LLM 跑满 20 步
+	@bash $(REPO)/tests/loop_real.sh
 
 test: ## dsh prototype 测试（需先在 dsh-superagent-prototype 跑 pnpm install）
 	cd $(DSH) && pnpm check

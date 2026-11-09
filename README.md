@@ -35,7 +35,8 @@ MODE=real bash tests/e2e_resume.sh        # 断点续跑端到端
 - 门禁口径不变：`make verify` rc=0 才能把功能项升 `passing`
 
 ```bash
-python3 tests/test_loop.py            # 重试成功 / 一直失败阻断 两个场景
+make loop                             # 离线：重试恢复 / 超限阻断两个场景（本地假模型）
+make loop-real                        # 真实 LLM 跑满 20 步
 python3 -m unittest discover -s tests # 全部 17 个单测
 ```
 

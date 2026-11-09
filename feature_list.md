@@ -13,4 +13,4 @@ Agent 不得自行改状态，也不得同时开第二项（WIP=1）。
 | F06 | mini harness 状态不变量门禁：`done/answers` 一致、步号连续无重复、`ended` 必满步 | `python3 src/verify.py` + `python3 -m unittest discover -s tests` | passing | 2026-11-09 `make verify` rc 0；13 个单测通过；state.json PASS 20/20 |
 | F07 | 断点续跑端到端：真实 LLM 跑 20 步，第 3 步 `kill -9`，重启续跑到 20/20 | `MODE=real tests/e2e_resume.sh` | passing | 2026-11-09 实跑：第 3 步被杀，重启走 `[resume]`，20/20 无重复无缺步 |
 | F08 | 门禁可咬人：坏状态必须 rc≠0，且错误信息给出具体修法 | `python3 tests/fault_inject.py` | passing | 2026-11-09 实跑：拒 9 个坏状态（含坏 JSON rc 2），合法状态 rc 0 |
-| F09 | Agent Loop：每步执行后校验，不合格带错误反馈重试（最多 2 次），超限写 `blocked` 并停住，不继续跑脏数据 | `python3 -m unittest discover -s tests -p 'test_loop.py'` + `make verify-fake` | passing | 2026-11-09 实跑：首次不合格重试 1 次后 20/20；一直不合格 3 次后 `blocked`、rc=1、只停在 0/20 |
+| F09 | Agent Loop：每步执行后校验，不合格带错误反馈重试（最多 2 次），超限写 `blocked` 并停住，不继续跑脏数据 | `make loop` + `python3 -m unittest discover -s tests -p 'test_loop.py'` | passing | 2026-11-09 实跑：首次不合格重试 1 次后 20/20；一直不合格 3 次后 `blocked`、rc=1、只停在 0/20 |
