@@ -24,6 +24,7 @@ flowchart TD
 | `src/harness/feature_list.py` | 功能清单状态机：状态枚举、WIP=1、passing 必须绑定验证命令与证据 | 范围与反馈（L01/L02） |
 | `src/harness/run_state.py` | 运行态检查点 schema 校验与续跑决策（next_step / mark_done），纯逻辑不落盘 | 状态（D2/L03） |
 | `src/harness/artifact_check.py` | 产出物期望链重算与独立校验（check_artifact / check_run），错误附修复动作 | 反馈（D3/L09） |
+| `src/harness/graph.py` | 任务图拓扑分层、重试预算、失败传播与 check_graph 独立判卷，纯逻辑不落盘 | 范围+反馈（D4/L13/L14） |
 | `scripts/check_contract.py` | 把上面三个模块的判断合成一个 rc，外加无密钥与消融残留检查 | 反馈 |
 | `scripts/onboarding_quiz.py` | 全新会话测试五问的自动判定 | 指令 + 状态 |
 | `scripts/audit_score.py` | 五元组 0-5 打分，输出最低分项 | 全子系统 |
@@ -31,6 +32,7 @@ flowchart TD
 | `scripts/session.py` | 上班读状态并验证一致性；下班校验交接完备 | 状态 |
 | `scripts/state_demo.py` | D2 演示编排：多步流水线原子落盘、模拟 kill -9、重启续跑并断言不重做 | 状态（D2） |
 | `scripts/verify_demo.py` | D3 演示编排：maker 产出→checker 判卷→标 done；独立 verify 从 spec 重算期望链 | 反馈（D3） |
+| `scripts/graph_demo.py` | D4 演示编排：线程池按拓扑轮并行执行，坏支耗尽预算，blocked 隔离，verify 全图判卷 | 范围（D4） |
 
 ## 不做的事
 

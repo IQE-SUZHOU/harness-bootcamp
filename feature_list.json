@@ -81,6 +81,13 @@
     "description": "D3 验证与可靠：done 标记放在 checker 之后，verify 从 spec 独立重算期望链，半截产物/静默篡改/空口胜利全部 rc=1 拒收且报错附修复动作",
     "verification": "make verify",
     "status": "passing",
-    "evidence": "2026-11-06 make verify rc=0（3 场景：半截产物不认、篡改 redo 后过、空口 done 5 处拒收且报错附修复）；make check rc=0（43 例）；quiz 5/5"
+    "evidence": "2026-11-09 make verify rc=0（3 场景：半截产物不认、篡改 redo 后过、空口 done 5 处拒收且报错附修复）；make check rc=0（43 例）；quiz 5/5"
+  },
+  {
+    "id": "F13",
+    "description": "D4 Loop/Graph：拓扑轮真并行、逐节点重试预算耗尽判 failed、失败沿依赖传播 blocked、独立支不误伤、篡改与半截产物拒收",
+    "verification": "make loop",
+    "status": "passing",
+    "evidence": "2026-11-09 make loop rc=0（4 轮拓扑执行，宽度3真并行 0.20s vs 串行0.60s；enrich 3 次预算耗尽判 failed，publish blocked，report 不误伤；篡改 redo 后过，.part 拒收）；make check rc=0（56 例）；quiz 5/5"
   }
 ]

@@ -20,6 +20,7 @@
 | `feature_list.py` | `load_features` / `validate_features` / `promote` | `FeatureListError` |
 | `run_state.py` | `validate_run_state` / `next_step` / `mark_done` / `is_complete` | `RunStateError` |
 | `artifact_check.py` | `expected_chain` / `check_artifact` / `check_run` | `ArtifactCheckError` |
+| `graph.py` | `validate_graph` / `topo_levels` / `expected_outputs` / `initial_state` / `validate_state` / `ready_nodes` / `record_success` / `record_failure` / `is_terminal` / `check_graph` | `GraphError` |
 
 ## 已知设计取舍
 
