@@ -1,0 +1,12 @@
+# maker/suite.tsv — 门禁的判定对象（DOD G1/G3/G4 都读这张表）
+# 列：id<TAB>name<TAB>weight<TAB>side_effect<TAB>gate
+# gate 只允许 must_pass：想减用例只能改本文件，而改本文件会让旧 run 的 suite_digest 对不上（G4 拦截）。
+# side_effect 沿用基座的两种形状：atomic=一次性原子落盘；stream=边跑边追加 5 段（被 kill 会留半截产物）。
+gpu-01	driver_load	0.6	atomic	must_pass
+gpu-02	device_inventory	0.8	atomic	must_pass
+gpu-03	render_node_open	1.0	atomic	must_pass
+gpu-04	mode_enum	1.4	atomic	must_pass
+gpu-05	dmabuf_copy	1.6	stream	must_pass
+gpu-06	compute_smoke	1.2	stream	must_pass
+gpu-07	power_state_cycle	0.9	atomic	must_pass
+gpu-08	report_write	0.7	atomic	must_pass

@@ -1,0 +1,20 @@
+=== F38_fully_self_consistent_shrink  (suite shrunk to 6 cases and every record (digest, journal, snapshot, artifacts) repaired to match)  expect G1_FAIL;G4_FAIL
+    [GATE][G1] PASS: 6/6 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 48 行 seq=1..48 连续无坏行，最后事件 run_finished，run_started 3 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 6/6 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] FAIL: 用例数 6 != 基线 8（suite.tsv 现场解析 6 条 / checker 钉死的基线 8 / suite 事件 suite_cases=6）→ 判定对象被缩过或换过; 套件 sha 与基线不符：现场 /home/zhyuan/tools/day3-agent-lab/.checker_scratch/F38_fully_self_consistent_shrink/maker/suite.tsv 的 sha256=eef8138625b4f2275affbb7dd75688349eca272406cb4b0d9b5aadc9e9ffd6e8 != checker 钉死的基线 e271b5962b4ee0fe4b113c3c6a4caa646805ce7f708105e50c4a1efa1cb23efd → 跑现场用的不是基线那一份套件（跑**之前**就改的套件，journal 里的 suite_digest 会跟着一起变，只有基线能发现）
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，6 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G4
+    checker exit code: 1
+
+=== F44_suite_renamed_before_run_all_consistent  (case names renamed in suite.tsv BEFORE the run: journal digest, journal digests, snapshot digests and artifacts all regenerated to match)  expect G4_FAIL
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 60 行 seq=1..60 连续无坏行，最后事件 run_finished，run_started 3 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] FAIL: 套件 sha 与基线不符：现场 /home/zhyuan/tools/day3-agent-lab/.checker_scratch/F44_suite_renamed_before_run_all_consistent/maker/suite.tsv 的 sha256=8b9d7e5d4ce48337326a156a84f54f3d10c9817625a88158275f0d5385ec72ea != checker 钉死的基线 e271b5962b4ee0fe4b113c3c6a4caa646805ce7f708105e50c4a1efa1cb23efd → 跑现场用的不是基线那一份套件（跑**之前**就改的套件，journal 里的 suite_digest 会跟着一起变，只有基线能发现）
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G4
+    checker exit code: 1
+

@@ -1,0 +1,387 @@
+### F00_legit_fresh | expect: PASS_ALL | exit=0
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: PASS (6/6 passed)
+
+### F01_snapshot_lie | expect: G1_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-08 声明必须通过，但 journal 里没有属于本批次的 task_finished（最后一次 task_started seq=37 attempt=1）; gpu-08 自述状态不是 done（state.json 里是 'running'）
+    [GATE][G2] PASS: journal 38 行 seq=1..38 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-08 三方证据不一致 → journal=None / state='d80e5ac504c2d87a' / artifact='d80e5ac504c2d87a' / suite复算期望='d80e5ac504c2d87a'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (4/6 passed) failed=G1,G3
+
+### F02_journal_truncated_state_complete | expect: G1_FAIL;G2_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-04 声明必须通过，但 journal 里没有属于本批次的 task_finished（最后一次 task_started seq=10 attempt=1）; gpu-05 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-06 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-07 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-08 在 journal 里没有任何执行记录（started/finished 都没有）
+    [GATE][G2] FAIL: run_id=387ef5c4（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手; 最后一条 run_started run_id=387ef5c4 没有配对的 run_finished; 快照 run_id='0ef78f4b' 与最后一条 run_started 的 run_id='387ef5c4' 不是同一次 run
+    [GATE][G3] FAIL: gpu-04 三方证据不一致 → journal=None / state='363677db4eed688f' / artifact='363677db4eed688f' / suite复算期望='363677db4eed688f'; gpu-05 三方证据不一致 → journal=None / state='2adb65fb7b72a007' / artifact='2adb65fb7b72a007' / suite复算期望='2adb65fb7b72a007'; gpu-06 三方证据不一致 → journal=None / state='d3cc6d9c8cb99c94' / artifact='d3cc6d9c8cb99c94' / suite复算期望='d3cc6d9c8cb99c94'; gpu-07 三方证据不一致 → journal=None / state='2f24699ccc29ce60' / artifact='2f24699ccc29ce60' / suite复算期望='2f24699ccc29ce60'; gpu-08 三方证据不一致 → journal=None / state='d80e5ac504c2d87a' / artifact='d80e5ac504c2d87a' / suite复算期望='d80e5ac504c2d87a'
+    [GATE][G4] FAIL: 套件里声明了却从没执行的用例：['gpu-05', 'gpu-06', 'gpu-07', 'gpu-08']
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (2/6 passed) failed=G1,G2,G3,G4
+
+### F03_no_journal | expect: G2_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-01 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-02 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-03 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-04 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-05 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-06 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-07 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-08 在 journal 里没有任何执行记录（started/finished 都没有）
+    [GATE][G2] FAIL: 权威历史不存在：run/events.jsonl（判定只认 journal，没有 journal 就没有完成）; 快照声称 journal.last_seq=40，实际最大 seq=0
+    [GATE][G3] FAIL: gpu-01 三方证据不一致 → journal=None / state='e1d3f53e5eac4679' / artifact='e1d3f53e5eac4679' / suite复算期望='e1d3f53e5eac4679'; gpu-02 三方证据不一致 → journal=None / state='a75f113c2a3ddba4' / artifact='a75f113c2a3ddba4' / suite复算期望='a75f113c2a3ddba4'; gpu-03 三方证据不一致 → journal=None / state='e41832711c0102c8' / artifact='e41832711c0102c8' / suite复算期望='e41832711c0102c8'; gpu-04 三方证据不一致 → journal=None / state='363677db4eed688f' / artifact='363677db4eed688f' / suite复算期望='363677db4eed688f'; gpu-05 三方证据不一致 → journal=None / state='2adb65fb7b72a007' / artifact='2adb65fb7b72a007' / suite复算期望='2adb65fb7b72a007'; gpu-06 三方证据不一致 → journal=None / state='d3cc6d9c8cb99c94' / artifact='d3cc6d9c8cb99c94' / suite复算期望='d3cc6d9c8cb99c94'; gpu-07 三方证据不一致 → journal=None / state='2f24699ccc29ce60' / artifact='2f24699ccc29ce60' / suite复算期望='2f24699ccc29ce60'; gpu-08 三方证据不一致 → journal=None / state='d80e5ac504c2d87a' / artifact='d80e5ac504c2d87a' / suite复算期望='d80e5ac504c2d87a'
+    [GATE][G4] FAIL: journal 里没有 suite 事件（共 0 条事件）——maker 没在开跑前钉死套件指纹，跑完之后改套件无从发现; 套件里声明了却从没执行的用例：['gpu-01', 'gpu-02', 'gpu-03', 'gpu-04', 'gpu-05', 'gpu-06', 'gpu-07', 'gpu-08']
+    [GATE][G5] FAIL: journal 里没有带可解析 ts 的事件，无法判断新鲜度
+    [GATE][G6] FAIL: journal 里没有 env_probe 事件（共 0 条事件）——maker 没记录跑现场的设备实况，无法证明它真的在 GPU 上跑过
+    GATE: FAIL (0/6 passed) failed=G1,G2,G3,G4,G5,G6
+
+### F04_half_written_line | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: journal 第 41 行不是完整 JSON：'{"seq": 41, "ts": "2026-11-06T09:38:24.726587+00:00", "event": "task_fin'
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F05_seq_gap | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: seq 断号（1..40 内缺失）：[12]
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F06_seq_dup | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: seq 重复：[10]; seq 不单调：seq=10 之后是 seq=10
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F07_no_run_finished | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: 最后一条事件不是 run_finished，而是 'task_finished'（seq=38）; run_id=387ef5c4（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手; run_id=0ef78f4b（seq=22 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手; 最后一条 run_started run_id=0ef78f4b 没有配对的 run_finished
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F08_unclosed_run_not_resumed | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: run_id=aaaa1111（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手; run_id=aaaa1111（seq=22 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F09_resume_legit | expect: PASS_ALL | exit=0
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 41 行 seq=1..41 连续无坏行，最后事件 run_finished，run_started 3 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: PASS (6/6 passed)
+
+### F10_state_runid_mismatch | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: 快照 run_id='deadbeef' 与最后一条 run_started 的 run_id='0ef78f4b' 不是同一次 run
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F11_last_seq_mismatch | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: 快照声称 journal.last_seq=19，实际最大 seq=40
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F12_status_not_completed | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: 自述 status='partial'，不是 completed
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F13_schema_wrong | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: 快照 schema=2，期望 1
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F14_state_task_not_done | expect: G1_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-06 自述状态不是 done（state.json 里是 'failed'，journal 里它已 finished seq=35）
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G1
+
+### F15_finished_from_unknown_run | expect: G1_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-08 的 task_finished run_id=9999ffff 在 journal 里没有对应 run_started（seq=19）; gpu-08 声明必须通过，但 journal 里没有属于本批次的 task_finished（最后一次 task_started seq=38 attempt=1）
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G1
+
+### F16_last_attempt_open | expect: G1_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-06 最后一次尝试 attempt=2 未闭合（task_started seq=39 之后没有 finished/failed）
+    [GATE][G2] FAIL: run_id=387ef5c4（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (4/6 passed) failed=G1,G2
+
+### F17_fake_journal_digest | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-03 三方证据不一致 → journal='ffffffffffffffff' / state='e41832711c0102c8' / artifact='e41832711c0102c8' / suite复算期望='e41832711c0102c8'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F18_fake_state_digest | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-03 三方证据不一致 → journal='e41832711c0102c8' / state='deadbeefdeadbeef' / artifact='e41832711c0102c8' / suite复算期望='e41832711c0102c8'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F19_fake_artifact_digest | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-03 三方证据不一致 → journal='e41832711c0102c8' / state='e41832711c0102c8' / artifact='0000000000000000' / suite复算期望='e41832711c0102c8'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F20_missing_artifact | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: 产物不存在：run/artifacts/gpu-04.txt; gpu-04 三方证据不一致 → journal='363677db4eed688f' / state='363677db4eed688f' / artifact=None / suite复算期望='363677db4eed688f'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F21_truncated_stream_artifact | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-05 是 stream 型，产物应有 5 段，实际 3 行; gpu-05 产物缺 entry 4/5, entry 5/5（半截产物不是完成）
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F22_atomic_artifact_multiline | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-01 是 atomic 型，产物应恰好 1 行，实际 2 行
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F23_orphan_case_in_journal | expect: G3_FAIL;G4_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: run_id=387ef5c4（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手
+    [GATE][G3] FAIL: journal 里有套件外的用例 id（孤儿证据）：{'gpu-09': [39, 40]}
+    [GATE][G4] FAIL: journal 里出现套件外的用例 id（判定对象被换过）：['gpu-09']
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (3/6 passed) failed=G2,G3,G4
+
+### F24_suite_shrunk | expect: G4_FAIL | exit=1
+    [GATE][G1] PASS: 6/6 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: journal 里有套件外的用例 id（孤儿证据）：{'gpu-07': [16, 17, 36, 37], 'gpu-08': [18, 19, 38, 39]}
+    [GATE][G4] FAIL: 套件指纹对不上：journal 记录 suite_digest='e271b5962b4ee0fe4b113c3c6a4caa646805ce7f708105e50c4a1efa1cb23efd'（seq=21），现场 /home/zhyuan/tools/day3-agent-lab/.checker_scratch/F24_suite_shrunk/maker/suite.tsv 的 sha256='eef8138625b4f2275affbb7dd75688349eca272406cb4b0d9b5aadc9e9ffd6e8' → 套件在跑之前不是这一份; 套件用例数对不上：journal 记录 suite_cases=8，现场解析出 6 条; journal 里出现套件外的用例 id（判定对象被换过）：['gpu-07', 'gpu-08']
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，6 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (4/6 passed) failed=G3,G4
+
+### F25_suite_renamed | expect: G3_FAIL;G4_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-02 三方证据不一致 → journal='a75f113c2a3ddba4' / state='a75f113c2a3ddba4' / artifact='a75f113c2a3ddba4' / suite复算期望='3ea869fea38d8172'
+    [GATE][G4] FAIL: 套件指纹对不上：journal 记录 suite_digest='e271b5962b4ee0fe4b113c3c6a4caa646805ce7f708105e50c4a1efa1cb23efd'（seq=21），现场 /home/zhyuan/tools/day3-agent-lab/.checker_scratch/F25_suite_renamed/maker/suite.tsv 的 sha256='15b12b39a5ee43ed2773fdbe0e220c895dd4539c1b6c5c1b84f876a159609ea4' → 套件在跑之前不是这一份
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (4/6 passed) failed=G3,G4
+
+### F26_gate_waived | expect: G4_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] FAIL: 套件第 11 行出现未登记豁免 gate='known_fail'：'gpu-07\tpower_state_cycle\t0.9\tatomic\tknown_fail'
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G4
+
+### F27_task_failed_present | expect: G4_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: run_id=387ef5c4（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] FAIL: 用例失败：gpu-06 seq=39 attempt=1 error='hipMemcpy failed: out of memory'
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (4/6 passed) failed=G2,G4
+
+### F28_whole_run_stale | expect: G5_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] FAIL: 批次陈旧：最后事件 seq=40 ts=2026-11-06T08:38:29.541+00:00 距今 3600s > MAX_AGE=900s
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G5
+
+### F29_artifacts_older_than_run | expect: G5_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] FAIL: gpu-01.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-02.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-03.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-04.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-05.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-06.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-07.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的; gpu-08.txt mtime=2026-11-06T07:45:39.936+00:00 早于本批次首条 run_started ts=2026-11-06T07:46:39.936+00:00（slack 5s）→ 产物不是这批跑出来的
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G5
+
+### F30_artifact_written_after_run | expect: G5_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] FAIL: gpu-08.txt mtime=2026-11-06T09:40:29.944+00:00 晚于最后事件 ts=2026-11-06T09:38:29.944+00:00（slack 5s）→ 跑完之后再补写产物
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G5
+
+### F31_ts_inversion | expect: G5_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] FAIL: journal ts 逆序：seq=8 ts=2026-11-06T07:46:40.614+00:00 晚于 seq=9 ts=2026-11-06T07:46:40.503+00:00
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G5
+
+### F32_probe_digest_forged | expect: G6_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] FAIL: 环境指纹对不上：journal 记录 probe_digest='0123456789abcdef'（seq=22），现场探针 = 'fdb76345370973f4'
+    GATE: FAIL (5/6 passed) failed=G6
+
+### F33_probe_gpu_names_forged | expect: G6_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] FAIL: 只在 journal 记录里出现的GPU 名：['Advanced Micro Devices, Inc. [AMD/ATI] Aqua Confluence [Radeon RX 7900 XTX]']; 只在现场出现的GPU 名：['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']; 现场采到的 GPU 不在 journal 声明的清单里：['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G6
+
+### F34_probe_devices_mismatch | expect: G6_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] FAIL: 只在 journal 记录里出现的card 设备：['card9']; 只在现场出现的render 设备：['renderD128']
+    GATE: FAIL (5/6 passed) failed=G6
+
+### F35_no_env_probe_event | expect: G6_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 38 行 seq=1..38 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] FAIL: journal 里没有 env_probe 事件（共 38 条事件）——maker 没记录跑现场的设备实况，无法证明它真的在 GPU 上跑过
+    GATE: FAIL (5/6 passed) failed=G6
+
+### F36_journal_path_redirect | expect: G1_FAIL;G2_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-04 声明必须通过，但 journal 里没有属于本批次的 task_finished（最后一次 task_started seq=10 attempt=1）; gpu-05 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-06 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-07 在 journal 里没有任何执行记录（started/finished 都没有）; gpu-08 在 journal 里没有任何执行记录（started/finished 都没有）
+    [GATE][G2] FAIL: 最后一条事件不是 run_finished，而是 'task_started'（seq=10）; run_id=387ef5c4（seq=3 mode=fresh）被启动但没有 run_finished，且后面没有 run_started(mode=resume) 接盘——这批工作死在半路没人接手; 最后一条 run_started run_id=387ef5c4 没有配对的 run_finished; 快照 run_id='0ef78f4b' 与最后一条 run_started 的 run_id='387ef5c4' 不是同一次 run; 快照声称 journal.last_seq=20，实际最大 seq=10
+    [GATE][G3] FAIL: gpu-04 三方证据不一致 → journal=None / state='363677db4eed688f' / artifact='363677db4eed688f' / suite复算期望='363677db4eed688f'; gpu-05 三方证据不一致 → journal=None / state='2adb65fb7b72a007' / artifact='2adb65fb7b72a007' / suite复算期望='2adb65fb7b72a007'; gpu-06 三方证据不一致 → journal=None / state='d3cc6d9c8cb99c94' / artifact='d3cc6d9c8cb99c94' / suite复算期望='d3cc6d9c8cb99c94'; gpu-07 三方证据不一致 → journal=None / state='2f24699ccc29ce60' / artifact='2f24699ccc29ce60' / suite复算期望='2f24699ccc29ce60'; gpu-08 三方证据不一致 → journal=None / state='d80e5ac504c2d87a' / artifact='d80e5ac504c2d87a' / suite复算期望='d80e5ac504c2d87a'
+    [GATE][G4] FAIL: 套件里声明了却从没执行的用例：['gpu-05', 'gpu-06', 'gpu-07', 'gpu-08']
+    [GATE][G5] FAIL: 批次陈旧：最后事件 seq=10 ts=2026-11-06T07:36:28.585+00:00 距今 7323s > MAX_AGE=900s; gpu-01.txt mtime=2026-11-06T09:28:14.130+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-02.txt mtime=2026-11-06T09:28:14.552+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-03.txt mtime=2026-11-06T09:28:15.072+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-04.txt mtime=2026-11-06T09:28:15.791+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-05.txt mtime=2026-11-06T09:28:16.612+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-06.txt mtime=2026-11-06T09:28:17.231+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-07.txt mtime=2026-11-06T09:28:17.701+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物; gpu-08.txt mtime=2026-11-06T09:28:18.072+00:00 晚于最后事件 ts=2026-11-06T07:36:28.585+00:00（slack 5s）→ 跑完之后再补写产物
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (1/6 passed) failed=G1,G2,G3,G4,G5
+
+### F37_seq_out_of_physical_order | expect: G2_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] FAIL: seq 不单调：seq=9 之后是 seq=8
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G2
+
+### F38_fully_self_consistent_shrink | expect: G1_FAIL;G4_FAIL | exit=0
+    [GATE][G1] PASS: 6/6 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 32 行 seq=1..32 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 6/6 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=eef8138625b4f227… 与 journal 记录一致，6 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，6 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: PASS (6/6 passed)
+
+### F40_empty_artifact | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-02 是 atomic 型，产物是空文件：run/artifacts/gpu-02.txt; gpu-02 产物里没有 digest=<hex16> 字段; gpu-02 三方证据不一致 → journal='a75f113c2a3ddba4' / state='a75f113c2a3ddba4' / artifact=None / suite复算期望='a75f113c2a3ddba4'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F42_no_snapshot | expect: G1_FAIL;G2_FAIL | exit=1
+    [GATE][G1] FAIL: gpu-01 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=25）; gpu-02 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=27）; gpu-03 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=29）; gpu-04 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=31）; gpu-05 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=33）; gpu-06 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=35）; gpu-07 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=37）; gpu-08 自述状态不是 done（state.json 里是 None，journal 里它已 finished seq=39）; 没有可用快照可对账（state.json 不存在）
+    [GATE][G2] FAIL: 快照不可用（state.json 不存在）
+    [GATE][G3] FAIL: gpu-01 三方证据不一致 → journal='e1d3f53e5eac4679' / state=None / artifact='e1d3f53e5eac4679' / suite复算期望='e1d3f53e5eac4679'; gpu-02 三方证据不一致 → journal='a75f113c2a3ddba4' / state=None / artifact='a75f113c2a3ddba4' / suite复算期望='a75f113c2a3ddba4'; gpu-03 三方证据不一致 → journal='e41832711c0102c8' / state=None / artifact='e41832711c0102c8' / suite复算期望='e41832711c0102c8'; gpu-04 三方证据不一致 → journal='363677db4eed688f' / state=None / artifact='363677db4eed688f' / suite复算期望='363677db4eed688f'; gpu-05 三方证据不一致 → journal='2adb65fb7b72a007' / state=None / artifact='2adb65fb7b72a007' / suite复算期望='2adb65fb7b72a007'; gpu-06 三方证据不一致 → journal='d3cc6d9c8cb99c94' / state=None / artifact='d3cc6d9c8cb99c94' / suite复算期望='d3cc6d9c8cb99c94'; gpu-07 三方证据不一致 → journal='2f24699ccc29ce60' / state=None / artifact='2f24699ccc29ce60' / suite复算期望='2f24699ccc29ce60'; gpu-08 三方证据不一致 → journal='d80e5ac504c2d87a' / state=None / artifact='d80e5ac504c2d87a' / suite复算期望='d80e5ac504c2d87a'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (3/6 passed) failed=G1,G2,G3
+
+### F43_artifact_belongs_to_other_case | expect: G3_FAIL | exit=1
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] FAIL: gpu-02 产物第一行不含用例 id：'gpu-01 driver_load digest=e1d3f53e5eac4679'; gpu-02 三方证据不一致 → journal='a75f113c2a3ddba4' / state='a75f113c2a3ddba4' / artifact='e1d3f53e5eac4679' / suite复算期望='a75f113c2a3ddba4'
+    [GATE][G4] PASS: suite_digest=e271b5962b4ee0fe… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: FAIL (5/6 passed) failed=G3
+
+### F44_suite_renamed_before_run_all_consistent | expect: G4_FAIL | exit=0
+    [GATE][G1] PASS: 8/8 用例在 journal 里有闭合 finished，自述状态全部 done
+    [GATE][G2] PASS: journal 40 行 seq=1..40 连续无坏行，最后事件 run_finished，run_started 2 条全部闭合或被 resume 接盘，快照与 journal 对齐
+    [GATE][G3] PASS: 8/8 用例：journal digest == 自述 digest == 产物 digest == 套件复算值，产物形状符合 side_effect，无孤儿用例
+    [GATE][G4] PASS: suite_digest=8b9d7e5d4ce48337… 与 journal 记录一致，8 个用例 id 与 journal 完全一致，task_failed=0，gate 全部 must_pass
+    [GATE][G5] PASS: 最后事件距今 0s ≤ MAX_AGE=900s，8 个产物 mtime 都在批次时间窗内，journal ts 非递减
+    [GATE][G6] PASS: journal probe_digest=fdb76345370973f4 == 现场 fdb76345370973f4，card=1 render=1 amd_gpu=True gpu=['Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)']
+    GATE: PASS (6/6 passed)
+
