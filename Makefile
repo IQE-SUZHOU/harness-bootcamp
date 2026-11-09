@@ -5,7 +5,7 @@ DSH  := $(ROOT)/dsh-superagent-prototype
 BASE := 6337fc8
 N    := grep -cE
 
-.PHONY: init contract check verify verify-fake loop loop-real test
+.PHONY: init contract check verify verify-fake loop loop-real stop clear test
 
 init: ## 自检：设计书 / dsh 基线 commit / pnpm
 	@test -f $(SPEC) && echo "spec OK" || { echo "SPEC MISSING: $(SPEC)"; exit 1; }
@@ -25,13 +25,13 @@ contract: ## 架构契约门禁：设计书锚点逐项可数，且本仓库无�
 check: contract ## 唯一能把功能项升为 passing 的入口
 
 verify: ## Day3 门禁：静态 → 单测 → 故障注入 → 真实 LLM 断点续跑
-	@python3 -m py_compile $(REPO)/src/harness.py $(REPO)/src/verify.py $(REPO)/tests/fake_llm.py $(REPO)/tests/fault_inject.py
+	@python3 -m py_compile $(REPO)/src/*.py $(REPO)/tests/fake_llm.py $(REPO)/tests/fault_inject.py
 	@python3 -m unittest discover -s $(REPO)/tests -p 'test_*.py'
 	@python3 $(REPO)/tests/fault_inject.py
 	@MODE=real bash $(REPO)/tests/e2e_resume.sh
 
 verify-fake: ## 同一门禁的离线版（假 LLM，可反复回归）
-	@python3 -m py_compile $(REPO)/src/harness.py $(REPO)/src/verify.py $(REPO)/tests/fake_llm.py $(REPO)/tests/fault_inject.py
+	@python3 -m py_compile $(REPO)/src/*.py $(REPO)/tests/fake_llm.py $(REPO)/tests/fault_inject.py
 	@python3 -m unittest discover -s $(REPO)/tests -p 'test_*.py'
 	@python3 $(REPO)/tests/fault_inject.py
 	@MODE=fake bash $(REPO)/tests/e2e_resume.sh
@@ -39,8 +39,15 @@ verify-fake: ## 同一门禁的离线版（假 LLM，可反复回归）
 loop: ## Day4 循环演示：重试恢复 + 超限阻断（本地假模型，离线）
 	@bash $(REPO)/tests/loop_demo.sh
 
-loop-real: ## Day4 循环：真实 LLM 跑满 20 步
+loop-real: ## Day4 循环：真实任务 rocm_triage + 真实 LLM（同一任务重复 3 次）
 	@bash $(REPO)/tests/loop_real.sh
+
+stop: ## 停掉残留的 harness.py（kill -9 make 留下的孤儿）
+	@pkill -f "[s]rc/harness.py" && echo "stopped leftover harness" || echo "no leftover harness"
+
+clear: ## 清掉 loop-real 的续跑状态，下次从第 1 步重来
+	@rm -f /tmp/harness-loop-real/state.json
+	@echo "cleared /tmp/harness-loop-real/state.json"
 
 test: ## dsh prototype 测试（需先在 dsh-superagent-prototype 跑 pnpm install）
 	cd $(DSH) && pnpm check

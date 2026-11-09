@@ -1,0 +1,13 @@
+{
+  "name": "rocm-triage",
+  "checker": "triage",
+  "repeat": 3,
+  "prompt": "你是 GPU 驱动回归的 triage 助手。下面是第 {{step}}/{{total}} 次执行同一判定任务。\n用例：{{item_id}}\n日志：\n{{payload}}\n只输出一个 JSON 对象，不要解释：{\"id\": \"{{item_id}}\", \"verdict\": \"pass|fail|need_info\", \"reason\": \"判定理由（至少 10 个字）\", \"evidence\": [\"引用日志原文片段\"]}",
+  "items": [
+    {
+      "id": "GPU-001",
+      "expected": "fail",
+      "payload": "[  120.441] amdgpu 0000:03:00.0: ring gfx_0.0.0 timeout, signaled seq=1248311, emitted seq=1248313\n[  120.442] amdgpu 0000:03:00.0: GPU reset begin!\n[  123.907] amdgpu 0000:03:00.0: GPU reset succeeded, trying to resume"
+    }
+  ]
+}

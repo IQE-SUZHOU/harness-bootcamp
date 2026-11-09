@@ -3,32 +3,27 @@
 
 import json
 import os
-import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(HERE, "state.json")
-HARNESS_FILE = os.path.join(HERE, "harness.py")
 REQUIRED_KEYS = ("session", "status", "done", "answers")
 STATUSES = ("running", "ended", "blocked")
-
-
-def total_steps():
-    try:
-        with open(HARNESS_FILE, encoding="utf-8") as f:
-            text = f.read()
-    except OSError:
-        return 20
-    m = re.search(r"^TOTAL_STEPS\s*=\s*(\d+)", text, re.M)
-    return int(m.group(1)) if m else 20
 
 
 def _is_int(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def resolve_total(state, total=None):
+    if total is not None:
+        return total
+    value = state.get("total") if isinstance(state, dict) else None
+    return value if _is_int(value) and value > 0 else 20
+
+
 def check_state(state, total=None):
-    total = total if total is not None else total_steps()
+    total = resolve_total(state, total)
     if not isinstance(state, dict):
         return [
             f"state-schema: root is {type(state).__name__}, expected an object. "
@@ -43,6 +38,12 @@ def check_state(state, total=None):
 
     errors = []
     session, status, done, answers = (state[k] for k in REQUIRED_KEYS)
+
+    if "total" in state and not (_is_int(state["total"]) and state["total"] > 0):
+        errors.append(
+            f"total-schema: total={state['total']!r} must be a positive int. "
+            "Fix: rebuild the state from the task file."
+        )
 
     if not isinstance(session, str) or not session.strip():
         errors.append(
@@ -156,7 +157,8 @@ def main(argv):
     if not errors:
         print(
             f"PASS state OK: session={state['session']} "
-            f"done={state['done']}/{total_steps()} status={state['status']}"
+            f"task={state.get('task', '-')} "
+            f"done={state['done']}/{resolve_total(state)} status={state['status']}"
         )
         return 0
 

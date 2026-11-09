@@ -15,7 +15,7 @@
 | `step-contiguity` | 步号重复、空缺或乱序 | 保留前缀，从断点重跑 |
 | `status-done` | `ended` 时未满步、`running` 时已满步、或 `blocked` 时已满步 | 让 harness.py 写最终状态 |
 
-`TOTAL_STEPS` 从 `harness.py` 里的同名常量解析，避免两处各写一份。退出码：`0` 通过，`1` 不变量不成立，`2` 文件读不了。
+`TOTAL_STEPS` 取自状态文件里的 `total`（任务步骤数，如 triage 任务为 3）；旧状态没有该字段时按 20 兼容。退出码：`0` 通过，`1` 不变量不成立，`2` 文件读不了。
 
 用法：
 

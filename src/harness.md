@@ -1,24 +1,25 @@
-# harness.py — mini harness 主循环
+# harness.py — CLI 入口
 
-`python3 src/harness.py`，配置从环境变量或 `src/.env` 读取（`BASE_URL` / `API_KEY` / `MODEL`）。
+```bash
+python3 src/harness.py [--task tasks/rocm_triage.json] [--state src/state.json] [--max-retries 2]
+```
 
-## Day 2：状态持久化
+职责只有四件：
 
-- 共 `TOTAL_STEPS = 20` 步，每步调一次 chat completions
-- 每步完成后原子写 `src/state.json`（先写 `.tmp` 再 `os.replace`）
-- 进程被杀后重启：`status=running` 则从 `done + 1` 步继续，不重跑已完成的步
-- `status=ended` 表示满步结束；`blocked` 表示重试耗尽
+1. 读任务文件（默认 `tasks/rocm_triage.json`）
+2. 读状态文件；`running` 续跑，`blocked` 直接退出 1，任务名或总步数不匹配拒绝启动
+3. 新建状态时写入 `session / task / total / done / answers`（`total` 是展开 `repeat` 后的步数）
+4. 调 `loop.run_task`，把 `save` 作为回调传进去
 
-## Day 4：带反馈的 Agent Loop
+模型调用（`call_llm`）和配置读取（`.env` / 环境变量）也在这里，便于替换成其他客户端。
 
-每步不是"调完就收"，而是 **执行 → 校验 → 不合格带原因重问**：
+单写者锁：启动时对 `<state>.lock` 加 `flock` 排他锁，同一 state 的第二个实例直接拒绝
+（提示 `另一个 harness（pid N）正在写 ...`，退出码 3）。锁随进程退出释放，所以正常
+`kill` 后重跑不受影响；但 `kill -9 make` 只会杀 make，子进程变孤儿继续占锁——用
+`make stop` 清掉。
 
-1. 调模型得到回答
-2. `check_answer` 校验：非空、包含 `第 N/20` 步号、给出结论（通过/pass）
-3. 不合格时把错误原因拼回 prompt，最多重试 `MAX_RETRIES = 2` 次
-4. 仍不合格：写 `status=blocked`、退出码 1、停在该步，不继续往下跑
-5. 每次被拒的尝试记入 `state.attempts`（步号、第几次、错误原因、原回答截断 200 字）
+网关层容错：单次调用超时 `LLM_TIMEOUT`（默认 200 s）；超时/连接失败自动重试 3 次
+（间隔 5 s、10 s），仍失败则打印一句 `模型网关不可用... 重跑即可续跑` 并退出 1——
+状态停在最后一个成功步，不会丢进度，也不会把网络错误当成模型不合格去重问。
 
-`blocked` 状态在 `verify.py` 里是合法的"失败结局"：结构必须自洽（`done` 与答案条数一致、步号连续、未满 20 步），但不会得到 `ended`。
-
-退出码：`0` 满步完成，`1` 被阻断或上次已阻断。
+退出码：`0` 跑完（`ended`），`1` 被阻断或上次已阻断。

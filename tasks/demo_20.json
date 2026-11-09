@@ -1,0 +1,12 @@
+{
+  "name": "demo-report",
+  "checker": "report",
+  "prompt": "用一句话汇报：GPU 驱动回归第 {{step}}/{{total}} 个用例执行完毕，结果通过。",
+  "items": [
+    {"id": "demo-01"}, {"id": "demo-02"}, {"id": "demo-03"}, {"id": "demo-04"},
+    {"id": "demo-05"}, {"id": "demo-06"}, {"id": "demo-07"}, {"id": "demo-08"},
+    {"id": "demo-09"}, {"id": "demo-10"}, {"id": "demo-11"}, {"id": "demo-12"},
+    {"id": "demo-13"}, {"id": "demo-14"}, {"id": "demo-15"}, {"id": "demo-16"},
+    {"id": "demo-17"}, {"id": "demo-18"}, {"id": "demo-19"}, {"id": "demo-20"}
+  ]
+}
