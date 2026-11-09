@@ -1,0 +1,160 @@
+{
+  "demo": "D4 loop / graph / automation",
+  "generatedAt": "2026-11-09T06:35:43+00:00",
+  "workspace": "<repo-root>/d4-artifacts/workspace",
+  "dshVersion": "0.2.0-rc.2",
+  "sessions": {
+    "fanout": "session-7812c5e1-8f93-4f67-a02e-ba54379b44b7",
+    "partial": "session-1234e95a-edfb-4ce1-82c8-a09f455c0148",
+    "fatal": "session-3f8c5e2d-516b-4075-afb9-55251ba5f6d5",
+    "cap": "session-6b928ce2-dbd8-4efb-aa83-75d155a83b93",
+    "timeout": "session-a8795325-ce9c-4feb-a9a0-88b22e635e51"
+  },
+  "runtimeConfig": {
+    "permissionPreset": "workspace-write",
+    "sandboxMode": "workspace-write",
+    "approvalPolicy": "ask",
+    "approvalPolicySource": null,
+    "modelProvider": "d3-minimax",
+    "model": "MiniMax-M2.7-highspeed"
+  },
+  "stopCondition": {
+    "provider": "spawn",
+    "maxConcurrentAgents": 2,
+    "maxTotalAgents": 10,
+    "maxItemsPerCall": 8,
+    "syncTimeoutMs": 3000
+  },
+  "autoLoop": {
+    "defaultMaxGoalRounds": 20,
+    "mounted": {
+      "service": true,
+      "driver": true,
+      "tool": true,
+      "command": true
+    },
+    "servicePackages": {
+      "service": "@deepseek-ai/dsh-goal",
+      "driver": "@deepseek-ai/dsh-goal-round-driver",
+      "tool": "@deepseek-ai/dsh-tool-goal",
+      "command": "@deepseek-ai/dsh-command-goal"
+    }
+  },
+  "runs": {
+    "fanout": {
+      "status": "completed",
+      "agentsStarted": 4,
+      "returnValue": {
+        "count": 3,
+        "parts": [
+          "CI（持续集成）是指开发者频繁将代码合并到主分支，并通过自动构建和测试流水线及时发现和修复问题的实践。",
+          "CD（Continuous Delivery，持续交付）是指将软件随时保持在可发布状态，通过自动化构建、测试与部署流水线，把小批量、高频率的变更安全地推向生产环境的过程。",
+          "IaC（基础设施即代码）是用版本控制中的代码来声明和自动管理基础设施配置，从而实现可重复、可审计的环境搭建与变更。"
+        ],
+        "summary": "CI 通过频繁合并与自动构建测试快速发现问题，CD 借助自动化流水线将小批量高频率变更安全推向生产，IaC 以版本化代码声明并自动管理基础设施，实现环境可重复、可审计，三者共同构成现代 DevOps 的交付基础。"
+      },
+      "error": null,
+      "calls": 1
+    },
+    "partial": {
+      "status": "completed",
+      "agentsStarted": 2,
+      "returnValue": {
+        "results": [
+          "OK1",
+          null,
+          "OK2"
+        ]
+      },
+      "error": null,
+      "calls": 1
+    },
+    "fatal": {
+      "status": "error",
+      "agentsStarted": null,
+      "returnValue": null,
+      "error": "Error: workflow run failed: WorkflowError: agent() option \"bogusOption\" is not recognized (supported: label, phase, schema, provider, model)\n    at WorkflowExecution.readAgentOptions (dsh-workflow-guest.js:888:10)\n    at WorkflowExecution.agent (dsh-workflow-guest.js:802:21)\n    at agent (dsh-workflow-guest.js:726:47)\n    at workflow:fatal-failure:3:9\n    at dsh-workflow-guest.js:923:18\n    at Array.map (<anonymous>)\n    at WorkflowExecution.parallel (dsh-workflow-guest.js:921:29)\n    at parallel (dsh-workflow-guest.js:727:44)\n    at workflow:fatal-failure:1:23\n    at workflow:fatal-failure:6:3",
+      "calls": 1
+    },
+    "cap": {
+      "status": "error",
+      "agentsStarted": null,
+      "returnValue": null,
+      "error": "Error: workflow run failed: WorkflowError: this run reached its total agent cap (2) — a runaway-loop backstop; raise the applicable maxTotalAgents limit if the scale is intentional\n    at WorkflowExecution.agent (dsh-workflow-guest.js:803:57)\n    at agent (dsh-workflow-guest.js:726:47)\n    at workflow:agent-cap:4:9\n    at dsh-workflow-guest.js:923:18\n    at Array.map (<anonymous>)\n    at WorkflowExecution.parallel (dsh-workflow-guest.js:921:29)\n    at parallel (dsh-workflow-guest.js:727:44)\n    at workflow:agent-cap:1:21\n    at workflow:agent-cap:7:3\n    at Script.runInContext (node:vm:149:12)",
+      "calls": 1
+    },
+    "timeout": {
+      "status": "error",
+      "agentsStarted": null,
+      "returnValue": null,
+      "error": "Error: workflow run failed: Error: Script execution timed out after 3000ms\n    at Script.runInContext (node:vm:149:12)\n    at WorkflowExecution.drive (dsh-workflow-guest.js:745:40)\n    at runWorkflowGuest (dsh-workflow-guest.js:1036:7)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async eval (eval at runProgram (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1030:31), <anonymous>:4:59974)\n    at async runProgram (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1030:25)\n    at async runNodeMain (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1113:3)",
+      "calls": 1
+    }
+  },
+  "routing": {
+    "runId": "32228cf0-cf18-4111-a09e-df7f8909ef79",
+    "name": "fanout-fanin",
+    "maxActive": 2,
+    "agents": [
+      {
+        "seq": 1,
+        "label": "ci",
+        "childId": "1d2c1572-f8ba-45ce-885b-63c9fcb01374",
+        "startSeq": 21,
+        "startTime": 1794206077797,
+        "endSeq": 24,
+        "endTime": 1794206079821,
+        "durationMs": 2024,
+        "outcome": "completed"
+      },
+      {
+        "seq": 2,
+        "label": "cd",
+        "childId": "4adf120c-cc19-47dc-b63a-168fb07c9aab",
+        "startSeq": 23,
+        "startTime": 1794206077802,
+        "endSeq": 27,
+        "endTime": 1794206080037,
+        "durationMs": 2235,
+        "outcome": "completed"
+      },
+      {
+        "seq": 3,
+        "label": "iac",
+        "childId": "6bf3f30d-0a72-4c57-bb47-eb8c654b5092",
+        "startSeq": 26,
+        "startTime": 1794206079837,
+        "endSeq": 28,
+        "endTime": 1794206081869,
+        "durationMs": 2032,
+        "outcome": "completed"
+      },
+      {
+        "seq": 4,
+        "label": "summary",
+        "childId": "245ef257-256f-42e5-9fcb-8ce4a3880d75",
+        "startSeq": 30,
+        "startTime": 1794206081884,
+        "endSeq": 31,
+        "endTime": 1794206083267,
+        "durationMs": 1383,
+        "outcome": "completed"
+      }
+    ]
+  },
+  "acceptance": {
+    "fanoutRan": true,
+    "fanInRan": true,
+    "routingExplained": true,
+    "partialFailureIsNull": true,
+    "fatalStopsWholeRun": true,
+    "agentCapEnforced": true,
+    "syncTimeoutEnforced": true,
+    "goalRoundCapConfigured": true,
+    "concurrencyCapped": true,
+    "stopConditionConfigured": true,
+    "singleWorkflowCallPerRun": true,
+    "resultIsPureJson": true
+  },
+  "failures": []
+}

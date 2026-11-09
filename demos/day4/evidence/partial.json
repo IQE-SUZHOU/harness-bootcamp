@@ -1,0 +1,20 @@
+{
+  "metaName": "partial-failure",
+  "calls": 1,
+  "status": "completed",
+  "agentsStarted": 2,
+  "returnValue": {
+    "results": [
+      "OK1",
+      null,
+      "OK2"
+    ]
+  },
+  "error": null,
+  "resultText": "workflow \"partial-failure\" completed (2 agents).\nReturn value:\n{\n  \"results\": [\n    \"OK1\",\n    null,\n    \"OK2\"\n  ]\n}",
+  "script": "const results = await parallel([\n  () => agent(\"Reply with exactly: OK1\", { label: \"ok1\" }),\n  () => { throw new Error(\"simulated branch failure\"); },\n  () => agent(\"Reply with exactly: OK2\", { label: \"ok2\" }),\n]);\nreturn { results };",
+  "meta": {
+    "name": "partial-failure",
+    "description": "ordinary branch failure becomes null"
+  }
+}

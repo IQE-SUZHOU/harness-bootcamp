@@ -1,0 +1,10 @@
+flowchart LR
+  P["parent turn"] --> R["workflow fanout-fanin"]
+  R --> F1["ci (fan-out)"]
+  R --> F2["cd (fan-out)"]
+  R --> F3["iac (fan-out)"]
+  S4["summary (fan-in)"]
+  F1 --> S4
+  F2 --> S4
+  F3 --> S4
+  S4 --> O["return value"]

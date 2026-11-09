@@ -1,0 +1,14 @@
+{
+  "metaName": "agent-cap",
+  "calls": 1,
+  "status": "error",
+  "agentsStarted": null,
+  "returnValue": null,
+  "error": "Error: workflow run failed: WorkflowError: this run reached its total agent cap (2) — a runaway-loop backstop; raise the applicable maxTotalAgents limit if the scale is intentional\n    at WorkflowExecution.agent (dsh-workflow-guest.js:803:57)\n    at agent (dsh-workflow-guest.js:726:47)\n    at workflow:agent-cap:4:9\n    at dsh-workflow-guest.js:923:18\n    at Array.map (<anonymous>)\n    at WorkflowExecution.parallel (dsh-workflow-guest.js:921:29)\n    at parallel (dsh-workflow-guest.js:727:44)\n    at workflow:agent-cap:1:21\n    at workflow:agent-cap:7:3\n    at Script.runInContext (node:vm:149:12)",
+  "resultText": "Error: workflow run failed: WorkflowError: this run reached its total agent cap (2) — a runaway-loop backstop; raise the applicable maxTotalAgents limit if the scale is intentional\n    at WorkflowExecution.agent (dsh-workflow-guest.js:803:57)\n    at agent (dsh-workflow-guest.js:726:47)\n    at workflow:agent-cap:4:9\n    at dsh-workflow-guest.js:923:18\n    at Array.map (<anonymous>)\n    at WorkflowExecution.parallel (dsh-workflow-guest.js:921:29)\n    at parallel (dsh-workflow-guest.js:727:44)\n    at workflow:agent-cap:1:21\n    at workflow:agent-cap:7:3\n    at Script.runInContext (node:vm:149:12)",
+  "script": "const parts = await parallel([\n  () => agent(\"Reply with exactly: C1\", { label: \"c1\" }),\n  () => agent(\"Reply with exactly: C2\", { label: \"c2\" }),\n  () => agent(\"Reply with exactly: C3\", { label: \"c3\" }),\n]);\nreturn { count: parts.length, parts };",
+  "meta": {
+    "name": "agent-cap",
+    "description": "three-way fan-out against a two-agent ceiling"
+  }
+}

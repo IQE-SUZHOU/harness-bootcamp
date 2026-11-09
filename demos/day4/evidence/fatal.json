@@ -1,0 +1,14 @@
+{
+  "metaName": "fatal-failure",
+  "calls": 1,
+  "status": "error",
+  "agentsStarted": null,
+  "returnValue": null,
+  "error": "Error: workflow run failed: WorkflowError: agent() option \"bogusOption\" is not recognized (supported: label, phase, schema, provider, model)\n    at WorkflowExecution.readAgentOptions (dsh-workflow-guest.js:888:10)\n    at WorkflowExecution.agent (dsh-workflow-guest.js:802:21)\n    at agent (dsh-workflow-guest.js:726:47)\n    at workflow:fatal-failure:3:9\n    at dsh-workflow-guest.js:923:18\n    at Array.map (<anonymous>)\n    at WorkflowExecution.parallel (dsh-workflow-guest.js:921:29)\n    at parallel (dsh-workflow-guest.js:727:44)\n    at workflow:fatal-failure:1:23\n    at workflow:fatal-failure:6:3",
+  "resultText": "Error: workflow run failed: WorkflowError: agent() option \"bogusOption\" is not recognized (supported: label, phase, schema, provider, model)\n    at WorkflowExecution.readAgentOptions (dsh-workflow-guest.js:888:10)\n    at WorkflowExecution.agent (dsh-workflow-guest.js:802:21)\n    at agent (dsh-workflow-guest.js:726:47)\n    at workflow:fatal-failure:3:9\n    at dsh-workflow-guest.js:923:18\n    at Array.map (<anonymous>)\n    at WorkflowExecution.parallel (dsh-workflow-guest.js:921:29)\n    at parallel (dsh-workflow-guest.js:727:44)\n    at workflow:fatal-failure:1:23\n    at workflow:fatal-failure:6:3",
+  "script": "const results = await parallel([\n  () => agent(\"Reply with exactly: OK1\", { label: \"ok1\" }),\n  () => agent(\"x\", { label: \"bad\", bogusOption: 1 }),\n]);\nreturn { results };",
+  "meta": {
+    "name": "fatal-failure",
+    "description": "illegal agent option stops the whole run"
+  }
+}

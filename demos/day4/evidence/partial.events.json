@@ -1,0 +1,36 @@
+{
+  "runs": [
+    {
+      "runId": "34abe2f0-ed11-43b9-b3eb-00e71e84b145",
+      "name": "partial-failure",
+      "startSeq": 19,
+      "endSeq": 26,
+      "stopReason": "completed",
+      "agents": [
+        {
+          "seq": 1,
+          "label": "ok1",
+          "childId": "937d470a-c9f7-4fa1-8e45-a00217a183dd",
+          "startSeq": 22,
+          "startTime": 1794206091348,
+          "endSeq": 25,
+          "endTime": 1794206094152,
+          "durationMs": 2804,
+          "outcome": "completed"
+        },
+        {
+          "seq": 2,
+          "label": "ok2",
+          "childId": "01cb9993-07ee-4f44-b308-4035fb3d8680",
+          "startSeq": 23,
+          "startTime": 1794206091349,
+          "endSeq": 24,
+          "endTime": 1794206093094,
+          "durationMs": 1745,
+          "outcome": "completed"
+        }
+      ],
+      "maxActive": 2
+    }
+  ]
+}

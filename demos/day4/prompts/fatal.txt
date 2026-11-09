@@ -1,0 +1,11 @@
+请使用 workflow 工具执行下面这段脚本。必须逐字使用 script 与 meta，不要改写、不要省略；其中 bogusOption 是故意保留的非法选项，请勿修正或删除。
+
+meta={"name":"fatal-failure","description":"illegal agent option stops the whole run"}
+script:
+const results = await parallel([
+  () => agent("Reply with exactly: OK1", { label: "ok1" }),
+  () => agent("x", { label: "bad", bogusOption: 1 }),
+]);
+return { results };
+
+执行后立即结束。无论 workflow 成功或失败，都不要重试、不要改用其他工具、不要修改脚本。

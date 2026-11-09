@@ -1,0 +1,22 @@
+{
+  "metaName": "fanout-fanin",
+  "calls": 1,
+  "status": "completed",
+  "agentsStarted": 4,
+  "returnValue": {
+    "count": 3,
+    "parts": [
+      "CI（持续集成）是指开发者频繁将代码合并到主分支，并通过自动构建和测试流水线及时发现和修复问题的实践。",
+      "CD（Continuous Delivery，持续交付）是指将软件随时保持在可发布状态，通过自动化构建、测试与部署流水线，把小批量、高频率的变更安全地推向生产环境的过程。",
+      "IaC（基础设施即代码）是用版本控制中的代码来声明和自动管理基础设施配置，从而实现可重复、可审计的环境搭建与变更。"
+    ],
+    "summary": "CI 通过频繁合并与自动构建测试快速发现问题，CD 借助自动化流水线将小批量高频率变更安全推向生产，IaC 以版本化代码声明并自动管理基础设施，实现环境可重复、可审计，三者共同构成现代 DevOps 的交付基础。"
+  },
+  "error": null,
+  "resultText": "workflow \"fanout-fanin\" completed (4 agents).\nReturn value:\n{\n  \"count\": 3,\n  \"parts\": [\n    \"CI（持续集成）是指开发者频繁将代码合并到主分支，并通过自动构建和测试流水线及时发现和修复问题的实践。\",\n    \"CD（Continuous Delivery，持续交付）是指将软件随时保持在可发布状态，通过自动化构建、测试与部署流水线，把小批量、高频率的变更安全地推向生产环境的过程。\",\n    \"IaC（基础设施即代码）是用版本控制中的代码来声明和自动管理基础设施配置，从而实现可重复、可审计的环境搭建与变更。\"\n  ],\n  \"summary\": \"CI 通过频繁合并与自动构建测试快速发现问题，CD 借助自动化流水线将小批量高频率变更安全推向生产，IaC 以版本化代码声明并自动管理基础设施，实现环境可重复、可审计，三者共同构成现代 DevOps 的交付基础。\"\n}",
+  "script": "phase(\"fan-out\");\nconst parts = await parallel([\n  () => agent(\"用一句话说明什么是 CI。只输出一句话。\", { label: \"ci\", phase: \"fan-out\" }),\n  () => agent(\"用一句话说明什么是 CD。只输出一句话。\", { label: \"cd\", phase: \"fan-out\" }),\n  () => agent(\"用一句话说明什么是 IaC。只输出一句话。\", { label: \"iac\", phase: \"fan-out\" }),\n]);\nphase(\"fan-in\");\nconst good = parts.filter(Boolean);\nconst summary = await agent(\"把下面三句话合并成一段不超过 80 字的总述，只输出总述：\\n\" + good.map((t, i) => (i + 1) + \". \" + t).join(\"\\n\"), { label: \"summary\", phase: \"fan-in\" });\nreturn { count: good.length, parts, summary };",
+  "meta": {
+    "name": "fanout-fanin",
+    "description": "three-way fan-out then one fan-in summary"
+  }
+}

@@ -1,0 +1,9 @@
+请使用 workflow 工具执行下面这段脚本。必须逐字使用 script 与 meta，不要改写、不要省略；其中的同步忙等循环是故意保留的超时测试，请勿删除或缩短。
+
+meta={"name":"sync-timeout","description":"synchronous loop exceeding syncTimeoutMs"}
+script:
+const started = Date.now();
+while (Date.now() - started < 6000) {}
+return { done: true, elapsed: Date.now() - started };
+
+执行后立即结束。无论 workflow 成功或失败，都不要重试、不要改用其他工具、不要修改脚本。

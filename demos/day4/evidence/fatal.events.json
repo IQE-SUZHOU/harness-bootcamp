@@ -1,0 +1,13 @@
+{
+  "runs": [
+    {
+      "runId": "43e354dc-f822-44e6-ad93-f8039583d3b0",
+      "name": "fatal-failure",
+      "startSeq": 19,
+      "endSeq": 20,
+      "stopReason": "error",
+      "agents": [],
+      "maxActive": 0
+    }
+  ]
+}

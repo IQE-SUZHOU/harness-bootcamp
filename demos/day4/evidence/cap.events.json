@@ -1,0 +1,13 @@
+{
+  "runs": [
+    {
+      "runId": "13432d89-a3b5-4b59-967c-62a29a9d4b4b",
+      "name": "agent-cap",
+      "startSeq": 18,
+      "endSeq": 19,
+      "stopReason": "error",
+      "agents": [],
+      "maxActive": 0
+    }
+  ]
+}

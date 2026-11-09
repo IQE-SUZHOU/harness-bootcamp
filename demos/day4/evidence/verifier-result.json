@@ -1,0 +1,86 @@
+{
+  "verifier": "d4-evidence",
+  "generatedAt": "2026-11-09T06:35:43+00:00",
+  "checks": [
+    {
+      "id": "V1",
+      "item": "3-way fan-out + fan-in returns count=3 and four started agents",
+      "passed": true,
+      "evidence": "status=completed agents=4 count=3 parts=3"
+    },
+    {
+      "id": "V2",
+      "item": "fan-in starts only after every fan-out branch ends",
+      "passed": true,
+      "evidence": "summary.startSeq=30 fan.endSeq=[24, 27, 28]"
+    },
+    {
+      "id": "V3",
+      "item": "routing trace has four labelled branches with child ids and paired start/end",
+      "passed": true,
+      "evidence": "labels=cd,ci,iac,summary"
+    },
+    {
+      "id": "V4",
+      "item": "ordinary branch failure becomes null without hiding the other branches",
+      "passed": true,
+      "evidence": "status=completed results=['str', 'NoneType', 'str']"
+    },
+    {
+      "id": "V5",
+      "item": "illegal agent option fails the whole workflow with no partial result",
+      "passed": true,
+      "evidence": "Error: workflow run failed: WorkflowError: agent() option \"bogusOption\" is not recognized (supported: label, phase, schema, provider, model)"
+    },
+    {
+      "id": "V6",
+      "item": "maxTotalAgents=2 trips AGENT_CAP on the third agent",
+      "passed": true,
+      "evidence": "Error: workflow run failed: WorkflowError: this run reached its total agent cap (2) — a runaway-loop backstop; raise the applicable maxTotalAgents limit if the scale is intentional"
+    },
+    {
+      "id": "V7",
+      "item": "syncTimeoutMs=3000 stops a 6s synchronous loop",
+      "passed": true,
+      "evidence": "Error: workflow run failed: Error: Script execution timed out after 3000ms"
+    },
+    {
+      "id": "V8",
+      "item": "observed fan-out concurrency equals the configured cap of 2",
+      "passed": true,
+      "evidence": "maxActive=2 configured=2"
+    },
+    {
+      "id": "V9",
+      "item": "each negative control used exactly one workflow call (no retry noise)",
+      "passed": true,
+      "evidence": "calls=fanout:1,partial:1,fatal:1,cap:1,timeout:1"
+    },
+    {
+      "id": "V10",
+      "item": "effective workflow-ptc config matches the committed stop-condition overlay",
+      "passed": true,
+      "evidence": "{\"maxConcurrentAgents\": 2, \"maxItemsPerCall\": 8, \"maxTotalAgents\": 10, \"provider\": \"spawn\", \"syncTimeoutMs\": 3000}"
+    },
+    {
+      "id": "V11",
+      "item": "summary acceptance flags are all true and failures is empty",
+      "passed": true,
+      "evidence": "acceptance={\"fanoutRan\": true, \"fanInRan\": true, \"routingExplained\": true, \"partialFailureIsNull\": true, \"fatalStopsWholeRun\": true, \"agentCapEnforced\": true, \"syncTimeoutEnforced\": true, \"goalRoundCapConfigured\": true, \"concurrencyCapped\": true, \"stopConditionConfigured\": true, \"singleWorkflowCallPerRun\": true, \"resultIsPureJson\": true}"
+    },
+    {
+      "id": "V12",
+      "item": "goal auto-loop has an explicit round cap and all four layers mounted",
+      "passed": true,
+      "evidence": "defaultMaxGoalRounds=20 mounted={\"command\": true, \"driver\": true, \"service\": true, \"tool\": true}"
+    },
+    {
+      "id": "V13",
+      "item": "committed evidence contains no absolute home paths or api-key-like tokens",
+      "passed": true,
+      "evidence": "clean"
+    }
+  ],
+  "allPassed": true,
+  "failed": []
+}

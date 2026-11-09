@@ -1,0 +1,12 @@
+请使用 workflow 工具执行下面这段脚本。必须逐字使用 script 与 meta，不要改写、不要省略、不要减少 agent 数量。
+
+meta={"name":"agent-cap","description":"three-way fan-out against a two-agent ceiling"}
+script:
+const parts = await parallel([
+  () => agent("Reply with exactly: C1", { label: "c1" }),
+  () => agent("Reply with exactly: C2", { label: "c2" }),
+  () => agent("Reply with exactly: C3", { label: "c3" }),
+]);
+return { count: parts.length, parts };
+
+执行后立即结束。无论 workflow 成功或失败，都不要重试、不要改用其他工具、不要修改脚本。

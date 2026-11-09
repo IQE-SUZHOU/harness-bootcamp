@@ -1,0 +1,79 @@
+{
+  "dshVersion": "0.2.0-rc.2",
+  "sessions": {
+    "fanout": "session-7812c5e1-8f93-4f67-a02e-ba54379b44b7",
+    "partial": "session-1234e95a-edfb-4ce1-82c8-a09f455c0148",
+    "fatal": "session-3f8c5e2d-516b-4075-afb9-55251ba5f6d5",
+    "cap": "session-6b928ce2-dbd8-4efb-aa83-75d155a83b93",
+    "timeout": "session-a8795325-ce9c-4feb-a9a0-88b22e635e51"
+  },
+  "stopCondition": {
+    "provider": "spawn",
+    "maxConcurrentAgents": 2,
+    "maxTotalAgents": 10,
+    "maxItemsPerCall": 8,
+    "syncTimeoutMs": 3000
+  },
+  "runtime": {
+    "permissionPreset": "workspace-write",
+    "sandboxMode": "workspace-write",
+    "approvalPolicy": "ask",
+    "approvalPolicySource": null,
+    "modelProvider": "d3-minimax",
+    "model": "MiniMax-M2.7-highspeed"
+  },
+  "fanoutRun": {
+    "runId": "32228cf0-cf18-4111-a09e-df7f8909ef79",
+    "name": "fanout-fanin",
+    "startSeq": 19,
+    "endSeq": 32,
+    "stopReason": "completed",
+    "agents": [
+      {
+        "seq": 1,
+        "label": "ci",
+        "childId": "1d2c1572-f8ba-45ce-885b-63c9fcb01374",
+        "startSeq": 21,
+        "startTime": 1794206077797,
+        "endSeq": 24,
+        "endTime": 1794206079821,
+        "durationMs": 2024,
+        "outcome": "completed"
+      },
+      {
+        "seq": 2,
+        "label": "cd",
+        "childId": "4adf120c-cc19-47dc-b63a-168fb07c9aab",
+        "startSeq": 23,
+        "startTime": 1794206077802,
+        "endSeq": 27,
+        "endTime": 1794206080037,
+        "durationMs": 2235,
+        "outcome": "completed"
+      },
+      {
+        "seq": 3,
+        "label": "iac",
+        "childId": "6bf3f30d-0a72-4c57-bb47-eb8c654b5092",
+        "startSeq": 26,
+        "startTime": 1794206079837,
+        "endSeq": 28,
+        "endTime": 1794206081869,
+        "durationMs": 2032,
+        "outcome": "completed"
+      },
+      {
+        "seq": 4,
+        "label": "summary",
+        "childId": "245ef257-256f-42e5-9fcb-8ce4a3880d75",
+        "startSeq": 30,
+        "startTime": 1794206081884,
+        "endSeq": 31,
+        "endTime": 1794206083267,
+        "durationMs": 1383,
+        "outcome": "completed"
+      }
+    ],
+    "maxActive": 2
+  }
+}

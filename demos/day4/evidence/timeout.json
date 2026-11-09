@@ -1,0 +1,14 @@
+{
+  "metaName": "sync-timeout",
+  "calls": 1,
+  "status": "error",
+  "agentsStarted": null,
+  "returnValue": null,
+  "error": "Error: workflow run failed: Error: Script execution timed out after 3000ms\n    at Script.runInContext (node:vm:149:12)\n    at WorkflowExecution.drive (dsh-workflow-guest.js:745:40)\n    at runWorkflowGuest (dsh-workflow-guest.js:1036:7)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async eval (eval at runProgram (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1030:31), <anonymous>:4:59974)\n    at async runProgram (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1030:25)\n    at async runNodeMain (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1113:3)",
+  "resultText": "Error: workflow run failed: Error: Script execution timed out after 3000ms\n    at Script.runInContext (node:vm:149:12)\n    at WorkflowExecution.drive (dsh-workflow-guest.js:745:40)\n    at runWorkflowGuest (dsh-workflow-guest.js:1036:7)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async eval (eval at runProgram (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1030:31), <anonymous>:4:59974)\n    at async runProgram (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1030:25)\n    at async runNodeMain (file://<home>/node/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-ptc-runtime-node/lib/process.js:1113:3)",
+  "script": "const started = Date.now();\nwhile (Date.now() - started < 6000) {}\nreturn { done: true, elapsed: Date.now() - started };",
+  "meta": {
+    "description": "synchronous loop exceeding syncTimeoutMs",
+    "name": "sync-timeout"
+  }
+}

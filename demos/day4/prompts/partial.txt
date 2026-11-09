@@ -1,0 +1,12 @@
+请使用 workflow 工具执行下面这段脚本。必须逐字使用 script 与 meta，不要改写、不要省略、不要修正中间那个故意抛错的分支。
+
+meta={"name":"partial-failure","description":"ordinary branch failure becomes null"}
+script:
+const results = await parallel([
+  () => agent("Reply with exactly: OK1", { label: "ok1" }),
+  () => { throw new Error("simulated branch failure"); },
+  () => agent("Reply with exactly: OK2", { label: "ok2" }),
+]);
+return { results };
+
+执行后立即结束。无论 workflow 成功或失败，都不要重试、不要改用其他工具、不要修改脚本。
