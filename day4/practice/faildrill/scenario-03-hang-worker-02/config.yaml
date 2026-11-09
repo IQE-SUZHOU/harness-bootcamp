@@ -1,0 +1,25 @@
+# 场景 S4（GRAPH.md §7）注入配置：worker-02 既慢又"叫不动"（模拟死锁/挂死的 GPU 测试机）
+# 目标分支（GRAPH.md §2 B4 的强杀路径）：
+#   branch=node_timeout → event=PROC_TERMINATE →（进程扛过 kill_grace_seconds）→ event=PROC_KILL
+#   → branch=manual_escalation + needs_human=True → 退出码 11
+# 与 S3 的唯一区别 = hang_nodes 命中：worker 对 SIGTERM 只记录不退出，所以必然出现 SIGKILL 证据。
+# kill_grace_seconds 保持 1 ⇒ PROC_KILL 的 reason 里回显的宽限就是它，行为证据与阈值同源。
+
+nodes:
+  - worker-01
+  - worker-02
+  - worker-03
+
+max_rounds: 3
+max_retries: 2
+per_node_timeout: 8         # ★ 被越过的阈值
+total_timeout: 60
+kill_grace_seconds: 1       # ★ SIGTERM → SIGKILL 的宽限（本场景要被真的走完）
+poll_interval_seconds: 0.05
+node_work_seconds: 3        # worker-02 实际 sleep = 3 + 30 = 33s
+
+fail_nodes: []
+slow_nodes:                 # ★ 让它活到超时之后
+  worker-02: 30
+hang_nodes:                 # ★ 注入点：对 SIGTERM 无反应
+  - worker-02

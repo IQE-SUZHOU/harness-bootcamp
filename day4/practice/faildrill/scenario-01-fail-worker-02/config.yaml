@@ -1,0 +1,21 @@
+# 场景 S2（GRAPH.md §7）注入配置：让 worker-02 这台模拟 GPU 测试机挂掉
+# 目标分支（GRAPH.md §2）：B2 节点失败→重试 → B3 重试≤max_retries 耗尽→failed → B7 失败传播（主流程退出码 10）
+# 与 config.yaml 的唯一区别 = fail_nodes 被注入；阈值一个都没改，所以"重试 ≤ 2"完全由 max_retries 决定。
+
+nodes:
+  - worker-01
+  - worker-02
+  - worker-03
+
+max_rounds: 3
+max_retries: 2              # 重试上限 2：worker-02 总共跑 3 次（首跑 + 2 次重试）后必须标 failed
+per_node_timeout: 8
+total_timeout: 60
+kill_grace_seconds: 1
+poll_interval_seconds: 0.05
+node_work_seconds: 3
+
+fail_nodes:                 # ★ 注入点
+  - worker-02
+slow_nodes: {}
+hang_nodes: []              # 本场景不涉及强杀路径（键必须存在：缺任一键 = 退出码 20）

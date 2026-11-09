@@ -1,0 +1,30 @@
+# config.yaml — 3 节点 GPU 测试编排的唯一阈值来源（对应 GRAPH.md §5 的映射表）
+#
+# 规则：
+#   1. orchestrator.py / worker.py 里不允许出现写死的阈值；缺任何一个键 → 退出码 20（拒绝跑）。
+#   2. 场景变体（faildrill / demo）只改本文件的键值或用 `--set KEY=VALUE` 覆盖，不改代码。
+#   3. 生效后的阈值会被 orchestrator 落盘成 <run>/config.resolved.yaml 并回显在日志 CONFIG_LOADED 行。
+
+# --- 节点名单：长度 = fan-out 时同时 Popen 的 worker 进程数（节点 = 本机独立子进程模拟 GPU 测试机）---
+nodes:
+  - worker-01
+  - worker-02
+  - worker-03
+
+# --- 循环 / 退出条件 ---
+max_rounds: 3              # 轮询上界（首跑 + 重试）；仍有节点未 ok 却撞上上界 → 触发退出条件（GRAPH B6，退出码 12）
+max_retries: 2             # 单节点失败后的重试上限 ≤ 2；耗尽 → status=failed（GRAPH B2/B3，退出码 10）
+
+# --- 超时阈值（秒）---
+per_node_timeout: 8        # 单节点墙钟超时；越界 → terminate/kill → 人工分支（GRAPH B4，退出码 11）
+total_timeout: 60          # 整轮编排墙钟预算；越界 → 中止在跑进程 → 触发退出条件（GRAPH B5，退出码 13）
+kill_grace_seconds: 1      # SIGTERM 到 SIGKILL 的宽限
+poll_interval_seconds: 0.05  # fan-in 轮询间隔（orchestrator 检查 poll()/deadline 的频率）
+
+# --- 模拟负载 ---
+node_work_seconds: 3       # worker 一次"跑分" = sleep 这些秒
+
+# --- 故障注入（faildrill / demo 用；默认全空 = 全绿交付）---
+fail_nodes: []             # 例: [worker-02]      → 该节点跑完即 exit 3（模拟 GPU 故障），不写产物
+slow_nodes: {}             # 例: {worker-03: 30}  → 该节点在 node_work_seconds 之上额外 sleep 30s，必然越过 per_node_timeout
+hang_nodes: []             # 例: [worker-02]      → 该节点对 SIGTERM 无反应（模拟死锁/挂死的机器），必然逼出 kill_grace_seconds 之后的 SIGKILL

@@ -1,0 +1,20 @@
+# 场景 S8（GRAPH.md §7）故意坏掉的配置：**缺 kill_grace_seconds 这个键**。
+# 目标：前置校验失败 → 退出码 20，且**不产任何** shards/REPORT/state（GRAPH §5 退出码常量表 + §6.8）。
+# 规则：缺任一键就报错退出，绝不补默认值 —— 所以这份文件就是"少一行"的 config.yaml。
+
+nodes:
+  - worker-01
+  - worker-02
+  - worker-03
+
+max_rounds: 3
+max_retries: 2
+per_node_timeout: 8
+total_timeout: 60
+# kill_grace_seconds 被故意删掉 ← 注入点（缺键 = 配置不可用）
+poll_interval_seconds: 0.05
+node_work_seconds: 3
+
+fail_nodes: []
+slow_nodes: {}
+hang_nodes: []

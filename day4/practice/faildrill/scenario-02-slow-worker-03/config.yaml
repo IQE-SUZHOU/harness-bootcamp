@@ -1,0 +1,22 @@
+# 场景 S3（GRAPH.md §7）注入配置：让 worker-03 这台模拟 GPU 测试机跑不完（慢到越过单节点超时）
+# 目标分支（GRAPH.md §2）：B4 超时 → terminate（本场景的 worker 响应 SIGTERM，故不走到 SIGKILL）
+#   → 人工分支 needs_human=True → B7 主流程退出码 11；扛过 SIGTERM 的强杀路径由 S4 覆盖。
+# 唯一注入点 = slow_nodes；per_node_timeout 保持 8，注入 30 秒额外延迟 ⇒ 必然越过阈值。
+
+nodes:
+  - worker-01
+  - worker-02
+  - worker-03
+
+max_rounds: 3
+max_retries: 2
+per_node_timeout: 8         # ★ 被越过的阈值（不因为注入而调小，保证"真超时"）
+total_timeout: 60           # 超时节点不重试，整轮 ~8s 内结束，远小于预算
+kill_grace_seconds: 1
+poll_interval_seconds: 0.05
+node_work_seconds: 3        # worker-03 实际 sleep = 3 + 30 = 33s
+
+slow_nodes:                 # ★ 注入点：节点 → 额外延迟秒
+  worker-03: 30
+fail_nodes: []
+hang_nodes: []              # 本场景的 worker 响应 SIGTERM（强杀路径见 S4）；键必须存在，缺键 = 退出码 20
