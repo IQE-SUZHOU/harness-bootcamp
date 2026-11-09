@@ -13,7 +13,7 @@
 | `done-vs-answers` | `done` 与 `answers` 条数不等 | 按连续步截断后重跑 |
 | `answer-schema` / `step-value` / `answer-empty` | 单条记录不完整或模型返回空 | 从该步重跑 |
 | `step-contiguity` | 步号重复、空缺或乱序 | 保留前缀，从断点重跑 |
-| `status-done` | `ended` 时未满步，或 `running` 时已满步 | 让 harness.py 写最终状态 |
+| `status-done` | `ended` 时未满步、`running` 时已满步、或 `blocked` 时已满步 | 让 harness.py 写最终状态 |
 
 `TOTAL_STEPS` 从 `harness.py` 里的同名常量解析，避免两处各写一份。退出码：`0` 通过，`1` 不变量不成立，`2` 文件读不了。
 

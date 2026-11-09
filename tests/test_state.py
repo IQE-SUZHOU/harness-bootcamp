@@ -66,6 +66,15 @@ class CheckStateTest(unittest.TestCase):
             codes(verify.check_state(state(done=20, status="running"), total=20)),
         )
 
+    def test_blocked_midway_passes(self):
+        self.assertEqual(verify.check_state(state(done=3, status="blocked"), total=20), [])
+
+    def test_blocked_after_total(self):
+        self.assertIn(
+            "status-done",
+            codes(verify.check_state(state(done=20, status="blocked"), total=20)),
+        )
+
     def test_bad_status(self):
         self.assertIn("status", codes(verify.check_state(state(status="done"), total=20)))
 

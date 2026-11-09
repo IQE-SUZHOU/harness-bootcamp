@@ -10,7 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(HERE, "state.json")
 HARNESS_FILE = os.path.join(HERE, "harness.py")
 REQUIRED_KEYS = ("session", "status", "done", "answers")
-STATUSES = ("running", "ended")
+STATUSES = ("running", "ended", "blocked")
 
 
 def total_steps():
@@ -128,6 +128,11 @@ def check_state(state, total=None):
         errors.append(
             f"status-done: status=running but done={done} >= {total}. "
             "Fix: let harness.py write the final status."
+        )
+    if status == "blocked" and done >= total:
+        errors.append(
+            f"status-done: status=blocked but done={done} >= {total}. "
+            "Fix: a blocked run must stop before the last step."
         )
     return errors
 

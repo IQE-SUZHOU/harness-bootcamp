@@ -25,6 +25,20 @@ MODE=real bash tests/e2e_resume.sh        # 断点续跑端到端
 
 每层失败都打印错误码和具体修法，例如 `done-vs-answers` 会告诉你截断到第几步重跑。
 
+## Day 4 Agent Loop
+
+循环从"调完就收"改成"执行 → 校验 → 不合格带原因重问"：
+
+- 每步校验：非空、含 `第 N/20` 步号、给出结论（通过/pass）
+- 最多重试 2 次；仍不合格写 `status=blocked`、退出码 1、停在该步
+- 每次被拒的尝试记进 `state.attempts`，作为重试证据
+- 门禁口径不变：`make verify` rc=0 才能把功能项升 `passing`
+
+```bash
+python3 tests/test_loop.py            # 重试成功 / 一直失败阻断 两个场景
+python3 -m unittest discover -s tests # 全部 17 个单测
+```
+
 ## 分支
 
 | 分支 | 成员 |
