@@ -7,6 +7,7 @@ Jenkins / ROCm 测试结果 → 六业务角色 → 带证据、可审计的结�
 ## 运行命令（详见 Makefile.md）
 - `make init` 自检：设计书 / dsh 基线 commit / pnpm
 - `make check` 架构契约门禁 —— 唯一授予 `passing` 的入口
+- `make verify` mini harness 验证门禁（真实 LLM）—— mini harness 功能项升 `passing` 的唯一入口；离线回归用 `make verify-fake`
 - 启用只逐级放开：安全基线 → observe → 内部授权闭环 → 真实只读 → 有限 auto
 
 ## 硬约束

@@ -1,10 +1,11 @@
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
+REPO := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 SPEC := $(ROOT)/docs/superpowers/specs/2026-10-30-multi-ai-agent-on-pipeline-for-validation-design_dsh.md
 DSH  := $(ROOT)/dsh-superagent-prototype
 BASE := 6337fc8
 N    := grep -cE
 
-.PHONY: init contract check test
+.PHONY: init contract check verify verify-fake test
 
 init: ## 自检：设计书 / dsh 基线 commit / pnpm
 	@test -f $(SPEC) && echo "spec OK" || { echo "SPEC MISSING: $(SPEC)"; exit 1; }
@@ -22,6 +23,18 @@ contract: ## 架构契约门禁：设计书锚点逐项可数，且本仓库无�
 	@! grep -lqE 'sk-[A-Za-z0-9]{8,}' *.md && echo "no-secret OK"
 
 check: contract ## 唯一能把功能项升为 passing 的入口
+
+verify: ## Day3 门禁：静态 → 单测 → 故障注入 → 真实 LLM 断点续跑
+	@python3 -m py_compile $(REPO)/src/harness.py $(REPO)/src/verify.py $(REPO)/tests/fake_llm.py $(REPO)/tests/fault_inject.py
+	@python3 -m unittest discover -s $(REPO)/tests -p 'test_*.py'
+	@python3 $(REPO)/tests/fault_inject.py
+	@MODE=real bash $(REPO)/tests/e2e_resume.sh
+
+verify-fake: ## 同一门禁的离线版（假 LLM，可反复回归）
+	@python3 -m py_compile $(REPO)/src/harness.py $(REPO)/src/verify.py $(REPO)/tests/fake_llm.py $(REPO)/tests/fault_inject.py
+	@python3 -m unittest discover -s $(REPO)/tests -p 'test_*.py'
+	@python3 $(REPO)/tests/fault_inject.py
+	@MODE=fake bash $(REPO)/tests/e2e_resume.sh
 
 test: ## dsh prototype 测试（需先在 dsh-superagent-prototype 跑 pnpm install）
 	cd $(DSH) && pnpm check
