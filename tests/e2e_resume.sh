@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mode="${MODE:-real}"
 kill_at="${KILL_AT:-3}"
-run_timeout="${RUN_TIMEOUT:-600}"
+run_timeout="${RUN_TIMEOUT:-1800}"
 work="$(mktemp -d)"
 srv_pid=""
 
@@ -47,12 +47,19 @@ except Exception:
 PY
 }
 
+echo "[e2e] mode=$mode, kill at step $kill_at, resume timeout ${run_timeout}s"
+
 python3 "$work/harness.py" >"$work/run1.log" 2>&1 &
 pid=$!
 
 killed_at=0
+reported=0
 for _ in $(seq 1 2400); do
   killed_at="$(done_count)"
+  if [[ "$killed_at" != "$reported" ]]; then
+    echo "[e2e] run #1 progress: $killed_at/20"
+    reported="$killed_at"
+  fi
   if [[ "$killed_at" -ge "$kill_at" ]]; then break; fi
   kill -0 "$pid" 2>/dev/null || break
   sleep 0.05
@@ -67,10 +74,22 @@ if [[ "$killed_at" -lt 1 || "$killed_at" -ge 20 ]]; then
 fi
 
 echo "[e2e] killed run #1 at step $killed_at (mode=$mode)"
+echo "[e2e] resuming; real-mode calls may take seconds to minutes on a busy gateway"
 
-if ! timeout "$run_timeout" python3 "$work/harness.py" >"$work/run2.log" 2>&1; then
+timeout "$run_timeout" python3 "$work/harness.py" >"$work/run2.log" 2>&1 &
+resume_pid=$!
+last=0
+while kill -0 "$resume_pid" 2>/dev/null; do
+  now="$(done_count)"
+  if [[ "$now" != "$last" ]]; then
+    echo "[e2e] resume progress: $now/20"
+    last="$now"
+  fi
+  sleep 2
+done
+if ! wait "$resume_pid"; then
   tail -20 "$work/run2.log" >&2 || true
-  fail "resumed run did not finish within ${run_timeout}s"
+  fail "resumed run did not finish within ${run_timeout}s (last progress $last/20; a slow model gateway is not a code failure)"
 fi
 
 grep -q '^\[resume\]' "$work/run2.log" || fail "run #2 did not take the resume branch"

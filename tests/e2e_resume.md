@@ -8,8 +8,10 @@
 2. `MODE=real` 时把 `src/.env` 复制进临时目录，走真实 LLM；`MODE=fake` 时起 `tests/fake_llm.py` 并注入 `BASE_URL/API_KEY/MODEL`
 3. 后台启动 harness，等到 `done >= KILL_AT`（默认 3）后 `kill -9`
 4. 断言进程确实停在 1..19 步之间
-5. 前台重启，要求日志出现 `[resume]`、在 `RUN_TIMEOUT`（默认 600 s）内跑满 20 步
+5. 前台重启，要求日志出现 `[resume]`、在 `RUN_TIMEOUT`（默认 1800 s）内跑满 20 步
 6. 用 `src/verify.py` 复核：步号连续、无重复、`done` 与答案条数一致
+
+跑动过程中会实时打印 `[e2e] run #1 progress: N/20` 和 `[e2e] resume progress: N/20`，不会静默。真实模式下单次模型调用从 1 s 到 60 s 都可能，进度不变就说明网关拥塞，不是脚本卡住；超时失败会明确提示"慢网关不是代码问题"。
 
 可调环境变量：`MODE`、`KILL_AT`、`RUN_TIMEOUT`。
 
