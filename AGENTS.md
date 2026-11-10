@@ -47,6 +47,13 @@ demos/day5/render_evidence.py        Deterministic assessment and evidence rende
 demos/day5/verify/static.sh          Static DoD check Carol runs inside the demo
 demos/day5/verify/verify_d5.py       Independent non-LLM verifier (V1–V17)
 demos/day5/evidence/                 Sanitized snapshot of one passing run
+demos/day5/mini-agent/               Dependency-free minimal agent (D5 companion)
+demos/day5/mini-agent/src/core/      Agent loop, session log, tool registry, adapters
+demos/day5/mini-agent/src/llm/       DeepSeek and OpenAI-compatible provider adapters
+demos/day5/mini-agent/src/tools/     Built-in bash, read_file, write_file, edit_file
+demos/day5/mini-agent/src/cli/       Command-line entry point
+demos/day5/mini-agent/tests/         Behavior and wire-protocol tests
+demos/day5/mini-agent/docs/          Custom model API guide
 ```
 
 ## Commands
@@ -69,6 +76,9 @@ Prerequisites: bash and git. The D2, D3, D4, and D5 demos also need `dsh`,
 
 # Run the D5 super-agent integration demo
 ./demos/day5/super-agent-demo.sh
+
+# Run the mini-agent unit and wire-protocol tests (no network, no API key)
+./demos/day5/mini-agent/tests/run-tests.sh
 
 # Confirm the working tree is clean before handing off
 git status --short
@@ -107,6 +117,13 @@ Expected tail of the D5 demo:
 evidence: <absolute path>/demos/day5/evidence
 ```
 
+Expected tail of the mini-agent tests:
+
+```
+# pass 33
+# fail 0
+```
+
 ## Conventions
 
 - Every shell script starts with `set -euo pipefail` and is executable.
@@ -122,6 +139,21 @@ evidence: <absolute path>/demos/day5/evidence
   The D3 human-approval token is generated at run time and is never committed;
   committed evidence redacts it as `<human-token>`.
 - Keep `scripts/check.sh` side-effect free: no network access, no writes.
+- The mini-agent has **no npm dependencies** and runs its TypeScript sources
+  directly through `node --experimental-strip-types`. Do not add a package
+  manager, a build step, or a `node_modules/` to it. Node 22 is the floor;
+  Node 23.6+ may drop the flag.
+- The mini-agent `bash` tool executes shell commands with **no sandbox and no
+  approval gate**. The file tools refuse a path outside `--cwd`, but the shell
+  is unconfined. Run it against a scratch directory, never a home directory.
+- Mini-agent provider keys come from the environment only (`MINIMAX_API_KEY`,
+  `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`) or from a `providers.json` outside the
+  repository. Never commit a key or a `providers.json` that contains one; the
+  tracked `providers.example.json` uses `${VAR}` placeholders only.
+- MiniMax issues separate keys for its China (`api.minimaxi.com`) and
+  international (`api.minimax.io`) platforms, and each rejects the other's key.
+  The `minimax` route targets the China endpoint and `minimax-intl` targets the
+  international one.
 - Generated demo output goes to `d2-artifacts/`, `d3-artifacts/`,
   `d4-artifacts/`, and `d5-artifacts/` and stays untracked. Commit only
   sanitized snapshots under `demos/day2/evidence/`, `demos/day3/evidence/`,

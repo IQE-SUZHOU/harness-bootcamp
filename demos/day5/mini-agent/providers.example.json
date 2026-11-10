@@ -1,0 +1,38 @@
+{
+  "providers": {
+    "minimax": {
+      "kind": "openai",
+      "baseURL": "https://api.minimaxi.com/v1",
+      "apiKey": "${MINIMAX_API_KEY}",
+      "useMaxCompletionTokens": true,
+      "extraBody": {
+        "reasoning_effort": "max",
+        "thinking": { "type": "adaptive" }
+      }
+    },
+    "minimax-intl": {
+      "kind": "openai",
+      "baseURL": "https://api.minimax.io/v1",
+      "apiKey": "${MINIMAX_API_KEY}",
+      "useMaxCompletionTokens": true
+    },
+    "my-llm": {
+      "kind": "openai",
+      "baseURL": "https://my-llm.example.com/v1",
+      "apiKey": "${MY_LLM_API_KEY}",
+      "headers": {
+        "x-tenant": "team-a"
+      }
+    },
+    "local-ollama": {
+      "kind": "openai",
+      "baseURL": "http://127.0.0.1:11434/v1",
+      "apiKey": "not-needed"
+    },
+    "moonshot": {
+      "kind": "openai",
+      "baseURL": "https://api.moonshot.cn/v1",
+      "apiKey": "${MOONSHOT_API_KEY}"
+    }
+  }
+}

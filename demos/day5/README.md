@@ -64,6 +64,27 @@ demos/day5/
 The repository skill lives at `.dsh/skills/d5-super-agent/SKILL.md`; dsh
 discovers it at project rank, and the `skill` tool loads it by exact name.
 
+## Mini-agent companion
+
+`mini-agent/` is a dependency-free coding agent that mirrors the Harness
+architecture — turn/step agent loop, durable session log, tool registry, and
+provider adapters — without the Cordis plugin runtime, the GUI, or the
+persistence backends. It is a companion deliverable for reading and
+extending, not part of the D5 acceptance run.
+
+```bash
+# 33 behavior and wire-protocol tests; no network, no API key
+./mini-agent/tests/run-tests.sh
+
+# Run it against a provider
+export MINIMAX_API_KEY=...
+node --experimental-strip-types mini-agent/src/cli/main.ts \
+  --provider minimax --model MiniMax-M3.1-Flash "list the files in this directory"
+```
+
+See [`mini-agent/README.md`](mini-agent/README.md) and
+[`mini-agent/docs/custom-model-api.md`](mini-agent/docs/custom-model-api.md).
+
 ## Run
 
 ```bash

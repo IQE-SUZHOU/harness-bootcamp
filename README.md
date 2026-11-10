@@ -106,6 +106,37 @@ experimental Team package note, the V1–V17 table, and the assessment format. A
 sanitized snapshot of one passing run is in
 [`demos/day5/evidence/`](demos/day5/evidence/).
 
+## Mini-agent (D5 companion)
+
+`demos/day5/mini-agent/` is a dependency-free coding agent that mirrors the
+Harness architecture — a turn/step agent loop, a durable session log every
+request is derived from, a tool registry with JSON-Schema validation, and a
+provider-adapter abstraction — without the Cordis plugin runtime, the GUI, or
+the persistence backends. It has **no npm dependencies** and runs its
+TypeScript sources directly.
+
+```bash
+export MINIMAX_API_KEY=...          # or DEEPSEEK_API_KEY / OPENAI_API_KEY
+
+node --experimental-strip-types demos/day5/mini-agent/src/cli/main.ts \
+  --provider minimax --model MiniMax-M3.1-Flash "list the files in this directory"
+```
+
+```bash
+# 33 behavior and wire-protocol tests; no network, no API key
+./demos/day5/mini-agent/tests/run-tests.sh
+```
+
+Provider routes: `deepseek`, `openai`, `minimax` (China endpoint), and
+`minimax-intl` (international endpoint). A `providers.json` file declares
+custom endpoints; the tracked `providers.example.json` shows the format. See
+[`demos/day5/mini-agent/README.md`](demos/day5/mini-agent/README.md) and
+[`demos/day5/mini-agent/docs/custom-model-api.md`](demos/day5/mini-agent/docs/custom-model-api.md).
+
+> The `bash` tool runs shell commands with no sandbox and no approval gate.
+> The file tools refuse a path outside `--cwd`, but the shell is unconfined.
+> Point it at a scratch directory.
+
 ## Files
 
 | Path | Purpose |
@@ -119,6 +150,7 @@ sanitized snapshot of one passing run is in
 | `demos/day3/` | D3 maker-checker demo, DoD verifier, fixture, and evidence |
 | `demos/day4/` | D4 fan-out/fan-in demo, stop-condition overlays, verifier, and evidence |
 | `demos/day5/` | D5 Team, fork/fresh, skill, assessment log, verifier, and evidence |
+| `demos/day5/mini-agent/` | Dependency-free minimal agent with provider adapters |
 | `.dsh/skills/d5-super-agent/` | Project skill loaded by the D5 demo |
 
 ## Scope

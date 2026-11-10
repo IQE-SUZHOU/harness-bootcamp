@@ -1,0 +1,27 @@
+{
+  "name": "mini-agent",
+  "version": "0.1.0",
+  "description": "A minimal, dependency-free coding agent modeled on the DeepSeek Harness architecture",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mini-agent": "./src/cli/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./core/agent": "./src/core/agent.ts",
+    "./core/session": "./src/core/session.ts",
+    "./core/tools": "./src/core/tools.ts",
+    "./core/llm": "./src/core/llm.ts",
+    "./llm/deepseek": "./src/llm/deepseek.ts",
+    "./tools/builtin": "./src/tools/builtin.ts"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types src/cli/main.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  }
+}
