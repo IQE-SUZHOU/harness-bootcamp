@@ -1,0 +1,13 @@
+当前目录是一次 llama.cpp llama-bench 运行的完整故障现场:bench_1.log 为运行日志(崩溃现场约在 1068–1094 行),目录中另有 dmesg_before_1.log / dmesg_after_1.log(kernel 日志前后对照)、cmake_build.log、rocminfo.log、run.log(复现流程全记录)、rc_1.txt、signature_1.txt、VERDICT 等材料。
+
+你的任务:只读诊断本次 GPU 故障,产出最终 debug 报告。
+
+硬性约束(必须遵守):
+- 只读诊断。严禁安装/卸载/重装任何软件包,严禁写入或改动 /opt/rocm、内核参数或任何系统配置,严禁重新运行 llama-bench 或任何 GPU 计算负载。
+- 允许:读取日志与文本分析、rocminfo 等只读查询。
+
+最终 debug 报告必须包含以下四部分:
+1. VERDICT:从 {REPRODUCED, NOT_REPRODUCED, INCONCLUSIVE} 中判定一个(判定依据:证据是否表明当前安装的 ROCm 组件批次在该 gfx1151 节点真实触发了 GPU hang)
+2. 故障签名:摘录最能唯一定位本次故障的日志行(3–6 行,注明来源文件与行号)
+3. 根因分析:哪个组件、什么故障模式、完整证据链
+4. 下一步建议:2–4 条可执行的后续动作

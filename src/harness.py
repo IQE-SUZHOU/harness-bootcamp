@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.request
 
 from loop import expand_steps, run_task
@@ -16,51 +17,108 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_TASK = os.path.join(HERE, "..", "tasks", "rocm_triage.json")
 DEFAULT_STATE = os.path.join(HERE, "state.json")
 NET_RETRIES = 3
+# 这些 HTTP 状态重试也不会好（鉴权/配额问题），直接换下一个 key
+SWITCH_HTTP = frozenset({401, 403, 429})
+# 本进程内已判死的 key 下标：sticky 兜底，本次运行不再回头试
+_dead_providers = set()
 
 
 def env(key):
+    """环境变量优先，其次 src/.env；都没有返回 None（必填项由 provider_chain 把关）"""
     v = os.environ.get(key)
     if v:
         return v
-    with open(os.path.join(HERE, ".env")) as f:
+    path = os.path.join(HERE, ".env")
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
         for line in f:
             if line.startswith(key + "="):
                 return line.strip().split("=", 1)[1]
-    raise SystemExit(f"缺少配置 {key}（环境变量或 .env）")
+    return None
+
+
+def provider_chain():
+    """主 key 必填；FALLBACK_API_KEY / FALLBACK_MODEL 成对可选，共用主 BASE_URL"""
+    missing = [k for k in ("BASE_URL", "API_KEY", "MODEL") if not env(k)]
+    if missing:
+        raise SystemExit(f"缺少配置 {'、'.join(missing)}（环境变量或 .env）")
+    chain = [
+        {
+            "label": "主 key",
+            "base_url": env("BASE_URL"),
+            "api_key": env("API_KEY"),
+            "model": env("MODEL"),
+        }
+    ]
+    fb_key, fb_model = env("FALLBACK_API_KEY"), env("FALLBACK_MODEL")
+    if bool(fb_key) != bool(fb_model):
+        raise SystemExit("FALLBACK_API_KEY 与 FALLBACK_MODEL 要么都配，要么都不配")
+    if fb_key:
+        chain.append(
+            {
+                "label": "备用 key",
+                "base_url": env("BASE_URL"),
+                "api_key": fb_key,
+                "model": fb_model,
+            }
+        )
+    return chain
 
 
 def call_llm(prompt):
+    chain = provider_chain()
+    timeout = float(os.environ.get("LLM_TIMEOUT", "200"))
+    last = None
+    for index, prov in enumerate(chain):
+        if index in _dead_providers:
+            continue
+        answer, last = _call_provider(prov, prompt, timeout)
+        if answer is not None:
+            return answer
+        _dead_providers.add(index)
+        rest = "，后续步骤直接走下一个 key" if index + 1 < len(chain) else ""
+        print(f"[warn] {prov['label']} 已判死{rest}", file=sys.stderr)
+    raise SystemExit(
+        f"模型网关不可用（{last}）；状态没有推进，直接重跑同一条命令即可续跑"
+    )
+
+
+def _call_provider(prov, prompt, timeout):
     body = json.dumps(
-        {
-            "model": env("MODEL"),
-            "messages": [{"role": "user", "content": prompt}],
-        }
+        {"model": prov["model"], "messages": [{"role": "user", "content": prompt}]}
     ).encode()
     req = urllib.request.Request(
-        env("BASE_URL") + "/chat/completions",
+        prov["base_url"] + "/chat/completions",
         data=body,
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + env("API_KEY"),
+            "Authorization": "Bearer " + prov["api_key"],
         },
     )
-    timeout = float(os.environ.get("LLM_TIMEOUT", "200"))
     last = None
     for attempt in range(1, NET_RETRIES + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.load(resp)["choices"][0]["message"]["content"]
+                return json.load(resp)["choices"][0]["message"]["content"], None
+        except urllib.error.HTTPError as exc:
+            last = exc
+            if exc.code in SWITCH_HTTP:
+                print(
+                    f"[warn] {prov['label']} HTTP {exc.code} {exc.reason}，"
+                    "重试无意义，直接换下一个 key",
+                    file=sys.stderr,
+                )
+                return None, exc
         except OSError as exc:
             last = exc
-            print(
-                f"[warn] 模型网关第 {attempt}/{NET_RETRIES} 次调用失败：{exc}",
-                file=sys.stderr,
-            )
-            if attempt < NET_RETRIES:
-                time.sleep(5 * attempt)
-    raise SystemExit(
-        f"模型网关不可用（{last}）；状态没有推进，直接重跑同一条命令即可续跑"
-    )
+        print(
+            f"[warn] 模型网关（{prov['label']}）第 {attempt}/{NET_RETRIES} 次调用失败：{last}",
+            file=sys.stderr,
+        )
+        if attempt < NET_RETRIES:
+            time.sleep(5 * attempt)
+    return None, last
 
 
 def lock_state(path):

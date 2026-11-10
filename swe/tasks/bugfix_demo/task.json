@@ -1,0 +1,8 @@
+{
+  "name": "calc-bugfix",
+  "workspace": "workspace",
+  "prompt": "修好当前目录里失败的测试（运行 python3 test_calc.py 可以看到失败）。不要修改测试文件，改完运行测试确认通过，然后提交。",
+  "verify": "python3 test_calc.py",
+  "step_limit": 12,
+  "command_timeout": 30
+}

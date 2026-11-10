@@ -11,15 +11,19 @@ python3 src/harness.py [--task tasks/rocm_triage.json] [--state src/state.json] 
 3. 新建状态时写入 `session / task / total / done / answers`（`total` 是展开 `repeat` 后的步数）
 4. 调 `loop.run_task`，把 `save` 作为回调传进去
 
-模型调用（`call_llm`）和配置读取（`.env` / 环境变量）也在这里，便于替换成其他客户端。
+模型调用（`call_llm`）和配置读取（`.env` / 环境变量）也在这里，便于替换成其他客户端；
+配置语义与密钥纪律见 `src/.env.md`。
 
 单写者锁：启动时对 `<state>.lock` 加 `flock` 排他锁，同一 state 的第二个实例直接拒绝
 （提示 `另一个 harness（pid N）正在写 ...`，退出码 3）。锁随进程退出释放，所以正常
 `kill` 后重跑不受影响；但 `kill -9 make` 只会杀 make，子进程变孤儿继续占锁——用
 `make stop` 清掉。
 
-网关层容错：单次调用超时 `LLM_TIMEOUT`（默认 200 s）；超时/连接失败自动重试 3 次
-（间隔 5 s、10 s），仍失败则打印一句 `模型网关不可用... 重跑即可续跑` 并退出 1——
-状态停在最后一个成功步，不会丢进度，也不会把网络错误当成模型不合格去重问。
+网关层容错（key 链）：单次调用超时 `LLM_TIMEOUT`（默认 200 s）。先主 key
+（`API_KEY`/`MODEL`）后备用 key（`FALLBACK_API_KEY`/`FALLBACK_MODEL`，与主 key 共用
+`BASE_URL`）；每个 key 最多重试 3 次（间隔 5 s、10 s），HTTP 401/403/429 重试无意义、
+当次直接换 key；换下去的 key 本进程内记死，后续步骤直接走备 key，下次重跑再从主 key
+试起。所有 key 用尽则打印一句 `模型网关不可用... 重跑即可续跑` 并退出 1——状态停在
+最后一个成功步，不会丢进度，也不会把网络错误当成模型不合格去重问。
 
 退出码：`0` 跑完（`ended`），`1` 被阻断或上次已阻断。

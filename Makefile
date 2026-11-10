@@ -5,7 +5,7 @@ DSH  := $(ROOT)/dsh-superagent-prototype
 BASE := 6337fc8
 N    := grep -cE
 
-.PHONY: init contract check verify verify-fake loop loop-real stop clear test
+.PHONY: init contract check verify verify-fake loop loop-real stop clear day5 day5-fake skills skills-test test
 
 init: ## 自检：设计书 / dsh 基线 commit / pnpm
 	@test -f $(SPEC) && echo "spec OK" || { echo "SPEC MISSING: $(SPEC)"; exit 1; }
@@ -41,6 +41,18 @@ loop: ## Day4 循环演示：重试恢复 + 超限阻断（本地假模型，离
 
 loop-real: ## Day4 循环：真实任务 rocm_triage + 真实 LLM（同一任务重复 3 次）
 	@bash $(REPO)/tests/loop_real.sh
+
+day5: ## Day5 Demo：mini SWE agent 用真实 LLM 修测试，再由外部命令验收到 rc=0
+	@python3 $(REPO)/swe/run.py --task $(REPO)/swe/tasks/bugfix_demo/task.json
+
+day5-fake: ## Day5 离线版：脚本化假模型驱动同一套 agent / 环境 / 门禁
+	@bash $(REPO)/swe/tests/day5_fake.sh
+
+skills: ## 列出 vendor/amd-skills 快照里的技能
+	@python3 $(REPO)/tools/skills.py list
+
+skills-test: ## 技能 CLI 单测（list/search/prompt/install）
+	@python3 -m unittest discover -s $(REPO)/tools/tests -p 'test_*.py'
 
 stop: ## 停掉残留的 harness.py（kill -9 make 留下的孤儿）
 	@pkill -f "[s]rc/harness.py" && echo "stopped leftover harness" || echo "no leftover harness"
