@@ -49,6 +49,7 @@ demos/day5/verify/verify_d5.py       Independent non-LLM verifier (V1–V17)
 demos/day5/evidence/                 Sanitized snapshot of one passing run
 demos/day5/mini-agent/               Dependency-free minimal agent (D5 companion)
 demos/day5/mini-agent/src/core/      Agent loop, session log, tool registry, adapters
+demos/day5/mini-agent/src/core/stop-conditions.ts  Step, time, and token limits
 demos/day5/mini-agent/src/llm/       DeepSeek and OpenAI-compatible provider adapters
 demos/day5/mini-agent/src/tools/     Built-in bash, read_file, write_file, edit_file
 demos/day5/mini-agent/src/cli/       Command-line entry point
@@ -120,7 +121,7 @@ evidence: <absolute path>/demos/day5/evidence
 Expected tail of the mini-agent tests:
 
 ```
-# pass 33
+# pass 56
 # fail 0
 ```
 
@@ -154,6 +155,10 @@ Expected tail of the mini-agent tests:
   international (`api.minimax.io`) platforms, and each rejects the other's key.
   The `minimax` route targets the China endpoint and `minimax-intl` targets the
   international one.
+- The mini-agent caps each turn with `--max-steps`, `--timeout-ms`, and
+  `--max-total-tokens`. A tripped cap ends the turn with the reason `stopped`
+  and records it in the session log; it never ends the turn silently. The caps
+  are per turn and do not carry over to the next one.
 - Generated demo output goes to `d2-artifacts/`, `d3-artifacts/`,
   `d4-artifacts/`, and `d5-artifacts/` and stays untracked. Commit only
   sanitized snapshots under `demos/day2/evidence/`, `demos/day3/evidence/`,

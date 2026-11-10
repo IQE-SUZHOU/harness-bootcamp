@@ -73,13 +73,14 @@ persistence backends. It is a companion deliverable for reading and
 extending, not part of the D5 acceptance run.
 
 ```bash
-# 33 behavior and wire-protocol tests; no network, no API key
+# 56 behavior and wire-protocol tests; no network, no API key
 ./mini-agent/tests/run-tests.sh
 
 # Run it against a provider
 export MINIMAX_API_KEY=...
 node --experimental-strip-types mini-agent/src/cli/main.ts \
-  --provider minimax --model MiniMax-M3.1-Flash "list the files in this directory"
+  --provider minimax --model MiniMax-M3.1-Flash --max-steps 10 \
+  "list the files in this directory"
 ```
 
 See [`mini-agent/README.md`](mini-agent/README.md) and

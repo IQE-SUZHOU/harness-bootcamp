@@ -77,6 +77,9 @@ For a protocol of your own, write one adapter class. See **[docs/custom-model-ap
 | `--base-url <url>` | API endpoint override |
 | `--api-key <key>` | API key override |
 | `--temperature <n>` | Sampling temperature |
+| `--max-steps <n>` | Stop the turn after this many model requests |
+| `--timeout-ms <n>` | Stop the turn after this many milliseconds |
+| `--max-total-tokens <n>` | Stop the turn after this many tokens |
 | `--log` | Print the session event log when finished |
 | `--list-providers` | List the registered provider routes and exit |
 
@@ -94,6 +97,9 @@ For a protocol of your own, write one adapter class. See **[docs/custom-model-ap
 | `MINI_AGENT_PROVIDER` | Default provider route |
 | `MINI_AGENT_MODEL` | Default model id |
 | `MINI_AGENT_CONFIG` | Path to a `providers.json` file |
+| `MINI_AGENT_MAX_STEPS` | Step cap for one turn |
+| `MINI_AGENT_TIMEOUT_MS` | Turn deadline in milliseconds |
+| `MINI_AGENT_MAX_TOTAL_TOKENS` | Token budget for one turn |
 
 ## Built-in tools
 
@@ -117,6 +123,7 @@ src/
 │   ├── llm.ts       LlmAdapter interface and the streaming BlockAssembler
 │   ├── providers.ts Provider registry: name → adapter factory
 │   ├── config.ts    providers.json loading and adapter construction
+│   ├── stop-conditions.ts  Step, time, and token limits for one turn
 │   └── agent.ts     The turn/step loop
 ├── llm/
 │   ├── deepseek.ts  DeepSeek Messages API adapter (SSE streaming)
@@ -141,6 +148,43 @@ user input
 ```
 
 The loop keeps stepping while the model asks for tools, and ends the turn when the model answers with text alone. A tool failure is reported *to the model* as a failed result, so the model can recover, rather than aborting the turn.
+
+### Stop conditions
+
+Without a limit, a task that sends the model in circles never ends: the loop
+keeps stepping for as long as the model asks for tools. A **stop condition**
+caps that, and each cap reports *why* it tripped instead of ending silently.
+
+| Limit | Flag | Environment | Ends the turn when |
+| --- | --- | --- | --- |
+| Step cap | `--max-steps <n>` | `MINI_AGENT_MAX_STEPS` | the turn made `n` model requests |
+| Deadline | `--timeout-ms <n>` | `MINI_AGENT_TIMEOUT_MS` | the turn ran for `n` milliseconds |
+| Token budget | `--max-total-tokens <n>` | `MINI_AGENT_MAX_TOTAL_TOKENS` | the turn consumed `n` tokens |
+
+```sh
+node --experimental-strip-types src/cli/main.ts --max-steps 5 --timeout-ms 60000 "task"
+```
+
+The limits are checked **before** each model request, so a tripped limit ends
+the turn without spending another call. The step cap is checked first: it is
+the cheapest and the most predictable brake on a runaway loop.
+
+A tripped limit ends the turn with the reason `stopped`, recorded in the
+session log's `turn/end` event:
+
+```json
+{"kind": "turn/end", "turn": 1,
+ "reason": {"kind": "stopped", "stopKind": "max-steps",
+            "message": "the turn reached its limit of 5 steps"}}
+```
+
+The CLI prints the same reason on stderr:
+
+```
+[stopped] max-steps: the turn reached its limit of 5 steps
+```
+
+An unset limit never trips, so a run without stop conditions behaves exactly as before. A non-positive limit is rejected when the agent is constructed, not silently ignored.
 
 ### The session log is the source of truth
 
@@ -169,7 +213,7 @@ The `ProviderRegistry` maps a provider *name* to an adapter factory, so the CLI 
 node --experimental-strip-types --test tests/*.test.ts
 ```
 
-33 tests cover the session projection, schema validation, block assembly, the turn/step loop (including tool failures and argument rejection), the built-in tools, the provider registry and config loading, the MiniMax request shape, `reasoning_content` handling, and tool calls split across chunks, and the full HTTP + SSE wire round trip against local mock servers for both the DeepSeek and OpenAI wire formats.
+56 tests cover the session projection, schema validation, block assembly, the turn/step loop (including tool failures and argument rejection), the stop conditions (step cap, deadline, and token budget, plus their boundaries), the built-in tools, the provider registry and config loading, the MiniMax request shape, `reasoning_content` handling, and tool calls split across chunks, and the full HTTP + SSE wire round trip against local mock servers for both the DeepSeek and OpenAI wire formats.
 
 ## Using it as a library
 
@@ -202,9 +246,12 @@ console.log(result.reason, result.text)
 | `dsh-llm-deepseek` | `llm/deepseek.ts` |
 | `dsh-llm-deepseek` credential + config | `core/config.ts`, `core/providers.ts` |
 | `dsh-tool-bash` and friends | `tools/builtin.ts` |
+| `workflow-ptc` / `goal` stop conditions | `core/stop-conditions.ts` |
 | Cordis plugin runtime, GUI, persistence, SDK | *not included* |
 
 The wire protocol matches the harness's DeepSeek adapter: `POST {baseURL}/v1/messages` with an Anthropic-style Messages body, `x-api-key` authentication, and SSE streaming. The OpenAI adapter additionally covers the Chat Completions protocol the harness does not implement.
+
+The stop conditions cover the harness's per-turn caps in a simpler form: a step count, a deadline, and a token budget. The harness also caps concurrent agents and total agents across a workflow, and layers a goal round cap on top; the mini-agent has no workflow or goal layer, so those do not apply.
 
 ## Limitations
 
@@ -213,3 +260,4 @@ The wire protocol matches the harness's DeepSeek adapter: `POST {baseURL}/v1/mes
 - **No sandbox.** The `bash` tool runs commands directly; the file tools are confined to the workspace root, but the shell is not.
 - **No compaction or context management.** Long conversations are sent in full.
 - **No approval gate.** Every tool call runs without asking.
+- **Stop conditions are per turn.** A cap ends the current turn; it does not carry over to the next one, and the loop does not resume the unfinished task on its own.

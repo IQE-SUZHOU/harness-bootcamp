@@ -14,6 +14,7 @@ import { Agent } from '../core/agent.ts'
 import { ToolRegistry } from '../core/tools.ts'
 import { ProviderRegistry } from '../core/providers.ts'
 import { loadProviders, createAdapterFromSettings, expandEnv } from '../core/config.ts'
+import type { StopConditionsConfig } from '../core/stop-conditions.ts'
 import { DEFAULT_MODEL } from '../llm/deepseek.ts'
 import { createBuiltinTools } from '../tools/builtin.ts'
 
@@ -41,6 +42,8 @@ interface CliOptions {
   provider: string
   /** The sampling temperature. */
   temperature: number | undefined
+  /** The limits that let a turn brake itself. */
+  stopConditions: StopConditionsConfig
   /** Whether to print the session log at the end. */
   showLog: boolean
   /** Whether to list the registered providers and exit. */
@@ -62,6 +65,13 @@ export function parseArgs(argv: readonly string[]): CliOptions {
     baseURL: process.env.DEEPSEEK_BASE_URL,
     provider: process.env.MINI_AGENT_PROVIDER ?? 'deepseek',
     temperature: undefined,
+    stopConditions: {
+      ...process.env.MINI_AGENT_MAX_STEPS === undefined ? {} : { maxSteps: Number(process.env.MINI_AGENT_MAX_STEPS) },
+      ...process.env.MINI_AGENT_TIMEOUT_MS === undefined ? {} : { timeoutMs: Number(process.env.MINI_AGENT_TIMEOUT_MS) },
+      ...process.env.MINI_AGENT_MAX_TOTAL_TOKENS === undefined
+        ? {}
+        : { maxTotalTokens: Number(process.env.MINI_AGENT_MAX_TOTAL_TOKENS) },
+    },
     showLog: false,
     listProviders: false,
   }
@@ -87,6 +97,15 @@ export function parseArgs(argv: readonly string[]): CliOptions {
         break
       case '--temperature':
         options.temperature = Number(argv[++index])
+        break
+      case '--max-steps':
+        options.stopConditions.maxSteps = Number(argv[++index])
+        break
+      case '--timeout-ms':
+        options.stopConditions.timeoutMs = Number(argv[++index])
+        break
+      case '--max-total-tokens':
+        options.stopConditions.maxTotalTokens = Number(argv[++index])
         break
       case '--api-key':
         options.apiKey = argv[++index] ?? options.apiKey
@@ -131,6 +150,9 @@ Options:
       --base-url <url>  API endpoint (default: https://api.deepseek.com)
       --api-key <key>   API key (default: $DEEPSEEK_API_KEY)
       --temperature <n> Sampling temperature
+      --max-steps <n>    Stop the turn after this many model requests
+      --timeout-ms <n>   Stop the turn after this many milliseconds
+      --max-total-tokens <n>  Stop the turn after this many tokens
       --log             Print the session event log when finished
       --list-providers  List the registered provider routes and exit
   -h, --help            Show this help
@@ -140,7 +162,10 @@ Environment:
   DEEPSEEK_BASE_URL     Optional endpoint override
   MINI_AGENT_PROVIDER   Optional provider route override
   MINI_AGENT_MODEL      Optional model override
-  MINI_AGENT_CONFIG     Optional path to a providers.json file`)
+  MINI_AGENT_CONFIG     Optional path to a providers.json file
+  MINI_AGENT_MAX_STEPS  Optional step cap
+  MINI_AGENT_TIMEOUT_MS Optional turn deadline in milliseconds
+  MINI_AGENT_MAX_TOTAL_TOKENS  Optional token budget per turn`)
 }
 
 /**
@@ -241,6 +266,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     model: options.model,
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     ...options.temperature === undefined ? {} : { temperature: options.temperature },
+    stopConditions: options.stopConditions,
     onText: (text) => { process.stdout.write(text) },
     onToolCall: (name, args) => {
       toolCallCount += 1
@@ -249,6 +275,9 @@ export async function main(argv: readonly string[]): Promise<number> {
     onToolResult: (name, isError, text) => {
       const preview = text.length > 400 ? `${text.slice(0, 400)}...` : text
       console.error(`[tool result] ${name}${isError ? ' (error)' : ''}: ${preview}`)
+    },
+    onStopped: (kind, message) => {
+      console.error(`\n[stopped] ${kind}: ${message}`)
     },
   })
 

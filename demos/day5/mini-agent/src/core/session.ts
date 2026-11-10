@@ -28,6 +28,7 @@ export type TurnEndReason =
   | { kind: 'max-tokens' }
   | { kind: 'aborted'; reason: string }
   | { kind: 'error'; message: string }
+  | { kind: 'stopped'; stopKind: 'max-steps' | 'timeout' | 'max-tokens'; message: string }
 
 /** One recorded event with its monotonically increasing sequence number. */
 export interface StoredEvent {

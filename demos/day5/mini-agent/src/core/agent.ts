@@ -12,6 +12,8 @@ import { BlockAssembler } from './llm.ts'
 import type { LlmAdapter } from './llm.ts'
 import { Session } from './session.ts'
 import type { TurnEndReason } from './session.ts'
+import { createStopConditions } from './stop-conditions.ts'
+import type { StopConditions, StopConditionsConfig } from './stop-conditions.ts'
 import { ToolRegistry, validateAgainstSchema } from './tools.ts'
 import type { ContentBlock, GenerateOptions, Message } from './types.ts'
 
@@ -29,12 +31,16 @@ export interface AgentOptions {
   maxTokens?: number
   /** Maximum tool calls executed concurrently within one step. */
   maxParallelToolCalls?: number
+  /** The limits that let a turn brake itself. */
+  stopConditions?: StopConditionsConfig
   /** Called for each streamed text delta, for live terminal output. */
   onText?: (text: string) => void
   /** Called when a tool call starts executing. */
   onToolCall?: (name: string, args: Record<string, unknown>) => void
   /** Called when a tool call finishes, successfully or not. */
   onToolResult?: (name: string, isError: boolean, text: string) => void
+  /** Called when a stop condition ends the turn. */
+  onStopped?: (kind: 'max-steps' | 'timeout' | 'max-tokens', message: string) => void
 }
 
 /** The result of one completed turn. */
@@ -62,6 +68,8 @@ export class Agent {
   private readonly registry: ToolRegistry
   /** The run configuration. */
   private readonly options: AgentOptions
+  /** The limits that let a turn brake itself. */
+  private readonly limits: StopConditions
 
   constructor(
     adapter: LlmAdapter,
@@ -72,6 +80,7 @@ export class Agent {
     this.adapter = adapter
     this.registry = registry
     this.options = options
+    this.limits = createStopConditions(options.stopConditions)
     this.session = new Session(sessionId)
   }
 
@@ -90,6 +99,7 @@ export class Agent {
     const controller = new AbortController()
     const onAbort = (): void => { controller.abort(signal?.reason) }
     signal?.addEventListener('abort', onAbort, { once: true })
+    const startedAt = Date.now()
     let reason: TurnEndReason = { kind: 'completed' }
     let text = ''
     let step = 0
@@ -100,6 +110,14 @@ export class Agent {
       }
       this.session.append({ kind: 'user/message', turn, step: 0, text: input })
       while (true) {
+        // The limits are checked before each request, so a tripped limit stops
+        // the turn without spending another model call.
+        const stop = this.limits.check(step, this.limits.totalTokens, Date.now() - startedAt)
+        if (stop !== undefined) {
+          reason = { kind: 'stopped', stopKind: stop.kind, message: stop.message }
+          this.options.onStopped?.(stop.kind, stop.message)
+          break
+        }
         step += 1
         this.session.append({ kind: 'step/start', turn, step })
         const outcome = await this.step(turn, step, controller.signal)
@@ -115,9 +133,16 @@ export class Agent {
         if (outcome.kind === 'max-tokens') {
           reason = { kind: 'max-tokens' }
           text = outcome.text
+          // The capped request still consumed tokens, so the budget counts it.
+          if (outcome.usage !== undefined) {
+            this.limits.addUsage(outcome.usage.inputTokens, outcome.usage.outputTokens)
+          }
           break
         }
         text = outcome.text
+        if (outcome.usage !== undefined) {
+          this.limits.addUsage(outcome.usage.inputTokens, outcome.usage.outputTokens)
+        }
         // The assistant message is logged whenever the model produced content:
         // a tool-call-only response carries the call the next request must
         // answer, so dropping it would lose the tool's identity.
@@ -158,7 +183,7 @@ export class Agent {
     | { kind: 'ok'; text: string; content: ContentBlock[]; hasToolCalls: boolean; usage?: { inputTokens: number; outputTokens: number } }
     | { kind: 'error'; message: string }
     | { kind: 'aborted'; message: string }
-    | { kind: 'max-tokens'; text: string }
+    | { kind: 'max-tokens'; text: string; usage?: { inputTokens: number; outputTokens: number } }
   > {
     const request = this.buildRequest(signal)
     const assembler = new BlockAssembler()
@@ -196,7 +221,11 @@ export class Agent {
       }
     }
     if (finish?.kind === 'max-tokens') {
-      return { kind: 'max-tokens', text }
+      return {
+        kind: 'max-tokens',
+        text,
+        ...assembler.usage === undefined ? {} : { usage: assembler.usage },
+      }
     }
     return {
       kind: 'ok',

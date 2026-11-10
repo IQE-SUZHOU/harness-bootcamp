@@ -123,14 +123,20 @@ node --experimental-strip-types demos/day5/mini-agent/src/cli/main.ts \
 ```
 
 ```bash
-# 33 behavior and wire-protocol tests; no network, no API key
+# 56 behavior and wire-protocol tests; no network, no API key
 ./demos/day5/mini-agent/tests/run-tests.sh
 ```
 
 Provider routes: `deepseek`, `openai`, `minimax` (China endpoint), and
 `minimax-intl` (international endpoint). A `providers.json` file declares
-custom endpoints; the tracked `providers.example.json` shows the format. See
-[`demos/day5/mini-agent/README.md`](demos/day5/mini-agent/README.md) and
+custom endpoints; the tracked `providers.example.json` shows the format.
+
+Each turn is capped so a task that sends the model in circles cannot run
+forever: `--max-steps`, `--timeout-ms`, and `--max-total-tokens`. A tripped
+cap ends the turn with an explicit `stopped` reason recorded in the session
+log.
+
+See [`demos/day5/mini-agent/README.md`](demos/day5/mini-agent/README.md) and
 [`demos/day5/mini-agent/docs/custom-model-api.md`](demos/day5/mini-agent/docs/custom-model-api.md).
 
 > The `bash` tool runs shell commands with no sandbox and no approval gate.
