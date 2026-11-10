@@ -1,0 +1,1 @@
+{"required_files": ["runs/FINAL_REPORT.md"], "must_contain": ["status: pass"], "min_bytes": 50}

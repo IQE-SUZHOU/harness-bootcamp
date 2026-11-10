@@ -1,0 +1,13 @@
+{
+  "run": {
+    "max_retries": 2,
+    "global_timeout_s": 60,
+    "manual_gate_exit": 2
+  },
+  "nodes": {
+    "worker-01": { "task": "summarize_spec", "deps": [] },
+    "worker-02": { "task": "write_tests",    "deps": [] },
+    "worker-03": { "task": "write_report",   "deps": [], "mode": "mock" },
+    "collect":   { "task": "fan_in",         "deps": ["worker-01", "worker-02", "worker-03"] }
+  }
+}
