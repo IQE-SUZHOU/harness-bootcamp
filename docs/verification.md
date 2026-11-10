@@ -14,6 +14,7 @@
 | `make resume` | D2 中断恢复演示 | rc=0：断点续跑不重做，坏检查点拒绝开工 |
 | `make verify` | D3 验证演示 | rc=0：半截产物不认、静默篡改抓得到、空口胜利拒收 |
 | `make loop` | D4 图演示 | rc=0：真并行、预算耗尽判 failed、失败沿依赖传播、独立支不误伤 |
+| `make teachback` | D5 整体验收 | rc=0：六 gate 全绿，交付报告从仓库实时生成 |
 
 ## 完成定义（Definition of Done）
 

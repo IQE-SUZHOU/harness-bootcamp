@@ -2,7 +2,7 @@ PY   := python3
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 export PYTHONPATH := $(ROOT)/src
 
-.PHONY: init contract test check quiz audit ablate restore start finish resume verify loop clean
+.PHONY: init contract test check quiz audit ablate restore start finish resume verify loop teachback clean
 
 init: ## 环境自检：必需工具缺失即失败，不装不做兜底
 	@bash $(ROOT)/init.sh
@@ -41,6 +41,9 @@ verify: ## D3 验证演示：半截产物/静默篡改/空口胜利全部被 che
 
 loop: ## D4 图演示：fan-out 并行、重试预算、失败传播、独立支不误伤（PASS 才 rc=0）
 	@$(PY) $(ROOT)/scripts/graph_demo.py demo
+
+teachback: ## D5 整体验收：六 gate 全绿 + 实时工件盘点 + 遗留链 + 业务 Top3（PASS 才 rc=0）
+	@$(PY) $(ROOT)/scripts/teachback.py
 
 clean: ## 清缓存与实验残留（恢复后才允许清）
 	@$(PY) $(ROOT)/scripts/ablate.py --restore

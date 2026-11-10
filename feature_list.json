@@ -89,5 +89,12 @@
     "verification": "make loop",
     "status": "passing",
     "evidence": "2026-11-09 make loop rc=0（4 轮拓扑执行，宽度3真并行 0.20s vs 串行0.60s；enrich 3 次预算耗尽判 failed，publish blocked，report 不误伤；篡改 redo 后过，.part 拒收）；make check rc=0（56 例）；quiz 5/5"
+  },
+  {
+    "id": "F14",
+    "description": "D5 整合交付：make teachback 一条命令聚合六 gate 全绿，交付报告（四层盘点/遗留链/业务 Top3）从仓库工件实时生成，讲稿 docs/teach-back.md 三档时长",
+    "verification": "make teachback",
+    "status": "passing",
+    "evidence": "2026-11-10 make teachback rc=0（六 gate 全绿：check/resume/verify/loop/quiz 5/5/audit；盘点显示 12/14 passing，F07/F10 如实暴露未做）"
   }
 ]

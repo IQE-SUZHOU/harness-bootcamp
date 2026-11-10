@@ -33,6 +33,7 @@ flowchart TD
 | `scripts/state_demo.py` | D2 演示编排：多步流水线原子落盘、模拟 kill -9、重启续跑并断言不重做 | 状态（D2） |
 | `scripts/verify_demo.py` | D3 演示编排：maker 产出→checker 判卷→标 done；独立 verify 从 spec 重算期望链 | 反馈（D3） |
 | `scripts/graph_demo.py` | D4 演示编排：线程池按拓扑轮并行执行，坏支耗尽预算，blocked 隔离，verify 全图判卷 | 范围（D4） |
+| `scripts/teachback.py` | D5 整体验收：聚合六 gate，从仓库工件实时生成盘点、遗留链与业务 Top3 | 交付（D5） |
 
 ## 不做的事
 

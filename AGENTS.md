@@ -29,6 +29,7 @@
 - D2 中断恢复演示：`make resume`
 - D3 验证与可靠演示：`make verify`
 - D4 Loop/Graph 演示：`make loop`
+- D5 整体验收（交付唯一入口）：`make teachback`
 
 ## 专题文档
 按需加载，agent 只在任务相关时读对应一篇：
@@ -37,6 +38,7 @@
 - `docs/instruction-rules.md` — 指令膨胀、信噪比、中间迷失的处置规则；加规则前必读
 - `docs/session-continuity.md` — 上下班流程与交接协议；跨会话任务必读
 - `docs/onboarding-test.md` — 全新会话测试五问的判据
+- `docs/teach-back.md` — 交付讲稿：30秒/3分钟/5分钟三档 + 非确定性判卷四级 + 业务提案；验收演示前必读
 - `src/harness/ARCHITECTURE.md` — 模块内约束；只改某个模块时读
 - `Makefile.md` — 各 target 的作用与退出码约定
 - `scripts/check_contract.py` — 工件契约门禁实现
