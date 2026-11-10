@@ -24,6 +24,16 @@ export type { DeepSeekOptions } from './llm/deepseek.ts'
 export { OpenAiAdapter } from './llm/openai.ts'
 export type { OpenAiOptions } from './llm/openai.ts'
 export { createBuiltinTools } from './tools/builtin.ts'
+export { SessionStore, buildRepairClosers, findInterrupted, SESSION_FORMAT_VERSION, UNKNOWN_OUTCOME_TEXT } from './core/persistence.ts'
+export type { RepairReport, SessionHeader, StoreOptions } from './core/persistence.ts'
+export { SessionRepository } from './core/repository.ts'
+export type { ResumeResult } from './core/repository.ts'
+export { renderVerifyTable, sha256File, verifyWorkspace } from './core/verify.ts'
+export type { Check, CommandCheck, FileCheck, ProtectedFile, VerifyResult, VerifySpec } from './core/verify.ts'
+export { ApprovalGate, APPROVAL_TOKEN_PREFIX, generateApprovalToken, isApprovalToken } from './core/approval.ts'
+export type { ApprovalDecision, ApprovalRequest, Approver } from './core/approval.ts'
+export { checkPlainJson, resolveConcurrency, runWorkflow } from './core/workflow.ts'
+export type { BranchResult, BranchRunner, RunRecord, WorkflowBranch, WorkflowFatal, WorkflowLimits, WorkflowOutcome } from './core/workflow.ts'
 export type {
   ContentBlock,
   FinishReason,

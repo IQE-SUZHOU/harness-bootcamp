@@ -51,6 +51,11 @@ demos/day5/mini-agent/               Dependency-free minimal agent (D5 companion
 demos/day5/mini-agent/src/core/      Agent loop, session log, tool registry, adapters
 demos/day5/mini-agent/src/core/stop-conditions.ts  Step, time, and token limits
 demos/day5/mini-agent/src/core/prune.ts  Model-free tool-result pruning
+demos/day5/mini-agent/src/core/persistence.ts  Durable session store and crash repair
+demos/day5/mini-agent/src/core/repository.ts  Session create, save, and resume
+demos/day5/mini-agent/src/core/verify.ts  Definition-of-Done verification
+demos/day5/mini-agent/src/core/approval.ts  Fail-closed human approval gate
+demos/day5/mini-agent/src/core/workflow.ts  Fan-out / fan-in and failure propagation
 demos/day5/mini-agent/src/llm/       DeepSeek and OpenAI-compatible provider adapters
 demos/day5/mini-agent/src/tools/     Built-in bash, read_file, write_file, edit_file
 demos/day5/mini-agent/src/cli/       Command-line entry point
@@ -122,7 +127,7 @@ evidence: <absolute path>/demos/day5/evidence
 Expected tail of the mini-agent tests:
 
 ```
-# pass 70
+# pass 113
 # fail 0
 ```
 
@@ -164,6 +169,13 @@ Expected tail of the mini-agent tests:
   `--prune-head`, and `--prune-tail`. Pruning keeps the head and the tail and
   replaces the middle with a marker; it never rewrites the durable session
   log, so the log stays replayable at full fidelity.
+- The mini-agent persists a session with `--session-id` and repairs it on
+  resume. The repair closes an interrupted tool call, step, and turn, and
+  records the call's outcome as **unknown** rather than inventing a result.
+- The mini-agent's `--verify` command runs an independent, non-LLM
+  Definition-of-Done verifier. The `--workflow` command runs a fan-out /
+  fan-in with the D4 failure semantics: an ordinary branch error nulls its
+  slot, while a cap or a timeout fails the whole run.
 - Generated demo output goes to `d2-artifacts/`, `d3-artifacts/`,
   `d4-artifacts/`, and `d5-artifacts/` and stays untracked. Commit only
   sanitized snapshots under `demos/day2/evidence/`, `demos/day3/evidence/`,

@@ -83,6 +83,11 @@ For a protocol of your own, write one adapter class. See **[docs/custom-model-ap
 | `--prune-threshold <n>` | Prune a tool result above this many characters |
 | `--prune-head <n>` | Keep this many leading characters when pruning |
 | `--prune-tail <n>` | Keep this many trailing characters when pruning |
+| `--session-id <id>` | Persist under this id and resume it when it exists |
+| `--store <path>` | Directory holding the persisted sessions |
+| `--list-sessions` | List the persisted sessions and exit |
+| `--verify <file>` | Verify the workspace against a DoD spec, then exit |
+| `--workflow <file>` | Run a fan-out / fan-in workflow, then exit |
 | `--log` | Print the session event log when finished |
 | `--list-providers` | List the registered provider routes and exit |
 
@@ -106,6 +111,8 @@ For a protocol of your own, write one adapter class. See **[docs/custom-model-ap
 | `MINI_AGENT_PRUNE_THRESHOLD` | Tool-result pruning threshold |
 | `MINI_AGENT_PRUNE_HEAD` | Leading characters kept when pruning |
 | `MINI_AGENT_PRUNE_TAIL` | Trailing characters kept when pruning |
+| `MINI_AGENT_SESSION_ID` | Default session id |
+| `MINI_AGENT_STORE` | Directory holding the persisted sessions |
 
 ## Built-in tools
 
@@ -131,6 +138,11 @@ src/
 │   ├── config.ts    providers.json loading and adapter construction
 │   ├── stop-conditions.ts  Step, time, and token limits for one turn
 │   ├── prune.ts     Model-free tool-result pruning
+│   ├── persistence.ts  Durable session store and crash repair
+│   ├── repository.ts   Session lifecycle: create, save, resume
+│   ├── verify.ts    Definition-of-Done verification (independent, non-LLM)
+│   ├── approval.ts  Fail-closed human approval gate
+│   ├── workflow.ts  Fan-out / fan-in and failure propagation
 │   └── agent.ts     The turn/step loop
 ├── llm/
 │   ├── deepseek.ts  DeepSeek Messages API adapter (SSE streaming)
@@ -243,6 +255,140 @@ Every event is appended to `Session` with a monotonic sequence number. The model
 - **A session is replayable.** The same log always produces the same request.
 - **Tool calls and results stay adjacent.** The provider requires each `tool_result` to directly follow the assistant message that requested it; the projection enforces that ordering.
 
+### Persistence and crash repair
+
+A session that lives only in memory cannot survive the process. With a
+`--session-id`, the log is written to disk as append-only JSONL after every
+turn, and the same id resumes the stored log on the next run.
+
+```sh
+# first run: the log is persisted
+mini-agent --session-id demo-1 "记住：我的幸运数字是 42"
+
+# second run: the stored history is replayed, so the model still knows
+mini-agent --session-id demo-1 "我的幸运数字是多少？"
+```
+
+The store also **repairs** a log that a crash cut short. An open tool call, a
+step, and a turn are closed with explicit records, in that order:
+
+```
+synthetic tool/result (the outcome is unknown)
+→ step/end
+→ turn/end(reason: interrupted)
+```
+
+The repair **never invents a tool result**. A call whose outcome is unknown is
+recorded as an error that says so, so the model can decide whether a retry is
+safe:
+
+> The tool call was interrupted before its result was recorded. Its outcome is
+> unknown. Do not retry blindly: check the workspace state first.
+
+A torn last line — the partial write a crash leaves behind — is dropped, and
+the rest of the log survives.
+
+```sh
+mini-agent --list-sessions   # show the stored sessions and what is open
+```
+
+### Definition-of-Done verification
+
+An agent's claim that a task is done is not evidence. A **verifier** is: it
+re-reads the workspace and re-runs the acceptance commands, so a claim that
+skips the work fails.
+
+The verifier is **independent and non-LLM**: every item is decided from the
+workspace, never from a model report. That makes it cheap, reproducible, and
+impossible to persuade.
+
+```sh
+mini-agent --verify dod.json
+```
+
+```json
+{
+  "workspace": "/path/to/workspace",
+  "files": [
+    { "id": "D1", "item": "answer.txt holds 42", "path": "answer.txt", "contains": ["42"] },
+    { "id": "D2", "item": "notes.md is absent", "path": "notes.md", "mustExist": false }
+  ],
+  "commands": [
+    { "id": "C1", "item": "the check script passes", "command": "./scripts/check.sh", "args": [], "expectExit": 0 }
+  ],
+  "protectedFiles": [{ "path": "dod.md", "sha256": "…" }],
+  "forbiddenPaths": ["CANARY_DO_NOT_CREATE"]
+}
+```
+
+The command exits `0` when every item passes and `1` otherwise, and prints the
+evidence for each decision:
+
+```
+| ID | Item | Result | Evidence |
+| --- | --- | --- | --- |
+| D1 | answer.txt holds 42 | PASS | answer.txt satisfies the rule |
+| C1 | the check script passes | FAIL | `./scripts/check.sh` exited 1, expected 0 |
+```
+
+A `protectedFiles` entry pins a file's digest, so the verifier also proves the
+agent did not edit the acceptance criteria to make them pass.
+
+### Human approval gate
+
+Some work may only proceed after a human says so. The gate is **fail-closed**:
+with no approver configured, or with an approver that throws, the request is
+refused. The agent cannot approve its own work — the approval comes from
+outside the model.
+
+```ts
+const gate = new ApprovalGate(async request => {
+  const answer = await askHuman(request)
+  return answer ? { kind: 'approved', token: generateApprovalToken() } : { kind: 'rejected', reason: 'no' }
+})
+const decision = await gate.request({ action: 'write the release tag', reason: 'the task is done' })
+```
+
+A granted approval always carries a token, so a later verifier can check that
+the work really was approved rather than merely claiming it was. The token
+prefix is `APPROVED-BY-HUMAN-`.
+
+### Fan-out / fan-in
+
+A workflow runs several branches concurrently and then summarizes the
+survivors. The failure semantics are the point:
+
+| Failure class | Effect |
+| --- | --- |
+| An ordinary branch error | that branch becomes `null`; the others complete |
+| A fatal error (cap reached, timeout) | the whole run fails |
+
+A fan-in therefore filters out the `null`s. Counting `parts.length` would
+count failures as successes.
+
+```sh
+mini-agent --workflow workflow.json
+```
+
+```json
+{
+  "branches": [
+    { "label": "ci", "task": "用一句话说明什么是 CI。" },
+    { "label": "cd", "task": "用一句话说明什么是 CD。" }
+  ],
+  "fanIn": "把下面三句话合并成一段不超过 80 字的总述。",
+  "limits": { "maxConcurrent": 2, "maxTotal": 10 }
+}
+```
+
+The limits mirror the harness's own: `maxConcurrent` bounds the branches
+running at once, `maxTotal` is the deployment ceiling, and a branch or run
+timeout is fatal. An omitted or zero `maxConcurrent` means *auto*
+(`min(16, max(1, parallelism - 2))`), never "no concurrency".
+
+The run reports the parts, the summary, and the routing record that pairs each
+branch with its outcome.
+
 ### Provider adapters
 
 The agent loop never talks to a provider directly. It sees only `StreamChunk`s:
@@ -263,7 +409,7 @@ The `ProviderRegistry` maps a provider *name* to an adapter factory, so the CLI 
 node --experimental-strip-types --test tests/*.test.ts
 ```
 
-70 tests cover the session projection, schema validation, block assembly, the turn/step loop (including tool failures and argument rejection), the stop conditions (step cap, deadline, and token budget, plus their boundaries), tool-result pruning (budgets, boundaries, surrogate pairs, idempotence, and log fidelity), the built-in tools, the provider registry and config loading, the MiniMax request shape, `reasoning_content` handling, and tool calls split across chunks, and the full HTTP + SSE wire round trip against local mock servers for both the DeepSeek and OpenAI wire formats.
+113 tests cover the session projection, schema validation, block assembly, the turn/step loop (including tool failures and argument rejection), the stop conditions (step cap, deadline, and token budget, plus their boundaries), tool-result pruning (budgets, boundaries, surrogate pairs, idempotence, and log fidelity), session persistence and crash repair (including a torn last line and an unknown-outcome closer), Definition-of-Done verification, the fail-closed approval gate, fan-out / fan-in and the failure-propagation semantics, the built-in tools, the provider registry and config loading, the MiniMax request shape, `reasoning_content` handling, and tool calls split across chunks, and the full HTTP + SSE wire round trip against local mock servers for both the DeepSeek and OpenAI wire formats.
 
 ## Using it as a library
 
@@ -298,20 +444,29 @@ console.log(result.reason, result.text)
 | `dsh-tool-bash` and friends | `tools/builtin.ts` |
 | `workflow-ptc` / `goal` stop conditions | `core/stop-conditions.ts` |
 | `dsh-compaction-tool-result-pruner` | `core/prune.ts` |
-| Cordis plugin runtime, GUI, persistence, SDK | *not included* |
+| `dsh-session` persistence + crash repair | `core/persistence.ts`, `core/repository.ts` |
+| D3 `verify_dod.py` (independent DoD verifier) | `core/verify.ts` |
+| D3 human gate (approval token) | `core/approval.ts` |
+| D4 `workflow` tool (fan-out / fan-in) | `core/workflow.ts` |
+| Cordis plugin runtime, GUI, SDK | *not included* |
 
 The wire protocol matches the harness's DeepSeek adapter: `POST {baseURL}/v1/messages` with an Anthropic-style Messages body, `x-api-key` authentication, and SSE streaming. The OpenAI adapter additionally covers the Chat Completions protocol the harness does not implement.
 
-The stop conditions cover the harness's per-turn caps in a simpler form: a step count, a deadline, and a token budget. The harness also caps concurrent agents and total agents across a workflow, and layers a goal round cap on top; the mini-agent has no workflow or goal layer, so those do not apply.
+The stop conditions cover the harness's per-turn caps in a simpler form: a step count, a deadline, and a token budget. The workflow adds the harness's `maxConcurrentAgents` and `maxTotalAgents` caps. The harness's goal round cap is not included, because the mini-agent has no goal layer.
 
 Pruning follows the harness's `dsh-compaction-tool-result-pruner`: it keeps a tool result's head and tail, replaces the middle with a marker, slices by Unicode code point, and never rewrites the durable log. The harness's summarizer-based compaction is not included.
+
+Persistence follows the harness's D2 contract: an append-only JSONL log, one directory per session, and a repair that closes an interrupted tool call, step, and turn with an *unknown outcome* rather than an invented result.
+
+The workflow follows the harness's D4 failure semantics: an ordinary branch error nulls its slot and the run continues, while a cap or a timeout fails the whole run. Nothing returns a partial success envelope.
 
 ## Limitations
 
 - **Two protocols.** The DeepSeek Messages API and the OpenAI Chat Completions API. Other protocols need a new adapter.
-- **No persistence.** The session log lives in memory and is lost on exit; `--log` prints it for inspection.
+- **Persistence is one file per session.** The harness stores zstd-compressed logs under a project key; the mini-agent stores plain JSONL under a session id, with no project-key derivation.
 - **No sandbox.** The `bash` tool runs commands directly; the file tools are confined to the workspace root, but the shell is not.
 - **No context compaction.** Tool results are pruned, but the conversation itself is not summarized: a long exchange of short messages still grows without bound. The harness compacts with a summarizer model; the mini-agent does not.
 - **No context-window awareness.** The agent does not know how large the model's window is, so it cannot size its budgets automatically or pre-empt a `context_length_exceeded` error.
-- **No approval gate.** Every tool call runs without asking.
+- **The approval gate is a library, not a CLI command.** The gate exists and is fail-closed, but the CLI has no interactive prompt wired to it.
+- **The verifier is a library and a `--verify` command.** The D3 maker-checker *loop* — a checker rejecting a maker and the maker repairing in a bounded retry — is not driven automatically; the verifier and the gate are the pieces a caller composes into one.
 - **Stop conditions are per turn.** A cap ends the current turn; it does not carry over to the next one, and the loop does not resume the unfinished task on its own.

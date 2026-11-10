@@ -9,13 +9,21 @@
  */
 
 import { createInterface } from 'node:readline/promises'
-import { resolve } from 'node:path'
+import { resolve, join } from 'node:path'
+import { homedir } from 'node:os'
+import { readFile } from 'node:fs/promises'
 import { Agent } from '../core/agent.ts'
 import { ToolRegistry } from '../core/tools.ts'
 import { ProviderRegistry } from '../core/providers.ts'
 import { loadProviders, createAdapterFromSettings, expandEnv } from '../core/config.ts'
 import type { StopConditionsConfig } from '../core/stop-conditions.ts'
 import type { PruneConfig } from '../core/prune.ts'
+import { SessionRepository } from '../core/repository.ts'
+import { SessionStore } from '../core/persistence.ts'
+import { renderVerifyTable, verifyWorkspace } from '../core/verify.ts'
+import type { VerifySpec } from '../core/verify.ts'
+import { runWorkflow } from '../core/workflow.ts'
+import type { WorkflowBranch } from '../core/workflow.ts'
 import { DEFAULT_MODEL } from '../llm/deepseek.ts'
 import { createBuiltinTools } from '../tools/builtin.ts'
 
@@ -51,6 +59,16 @@ interface CliOptions {
   showLog: boolean
   /** Whether to list the registered providers and exit. */
   listProviders: boolean
+  /** The session id to persist under and resume. */
+  sessionId: string | undefined
+  /** The directory holding the persisted sessions. */
+  storeRoot: string
+  /** The Definition-of-Done spec file to verify the workspace against. */
+  verifySpec: string | undefined
+  /** The workflow spec file to run. */
+  workflowSpec: string | undefined
+  /** Whether to list the persisted sessions and exit. */
+  listSessions: boolean
 }
 
 /**
@@ -88,6 +106,11 @@ export function parseArgs(argv: readonly string[]): CliOptions {
     },
     showLog: false,
     listProviders: false,
+    sessionId: process.env.MINI_AGENT_SESSION_ID,
+    storeRoot: process.env.MINI_AGENT_STORE ?? join(homedir(), '.mini-agent', 'sessions'),
+    verifySpec: undefined,
+    workflowSpec: undefined,
+    listSessions: false,
   }
   const positional: string[] = []
   for (let index = 0; index < argv.length; index += 1) {
@@ -139,6 +162,21 @@ export function parseArgs(argv: readonly string[]): CliOptions {
       case '--list-providers':
         options.listProviders = true
         break
+      case '--session-id':
+        options.sessionId = argv[++index]
+        break
+      case '--store':
+        options.storeRoot = resolve(argv[++index] ?? options.storeRoot)
+        break
+      case '--verify':
+        options.verifySpec = argv[++index]
+        break
+      case '--workflow':
+        options.workflowSpec = argv[++index]
+        break
+      case '--list-sessions':
+        options.listSessions = true
+        break
       case '-h':
       case '--help':
         printUsage()
@@ -164,6 +202,8 @@ function printUsage(): void {
 Usage:
   mini-agent [options] "task"     Run one task and exit
   mini-agent [options] -i         Read tasks from stdin, one per line
+  mini-agent --verify <spec.json>  Verify a workspace against a DoD spec
+  mini-agent --workflow <spec.json>  Run a fan-out / fan-in workflow
 
 Options:
   -i, --interactive     Read tasks from stdin interactively
@@ -172,6 +212,11 @@ Options:
       --cwd <path>      Workspace root (default: current directory)
       --base-url <url>  API endpoint (default: https://api.deepseek.com)
       --api-key <key>   API key (default: $DEEPSEEK_API_KEY)
+      --session-id <id> Persist under this id and resume it when it exists
+      --store <path>    Directory holding the persisted sessions
+      --list-sessions   List the persisted sessions and exit
+      --verify <file>   Verify the workspace against a DoD spec, then exit
+      --workflow <file> Run a fan-out / fan-in workflow, then exit
       --temperature <n> Sampling temperature
       --max-steps <n>    Stop the turn after this many model requests
       --timeout-ms <n>   Stop the turn after this many milliseconds
@@ -260,6 +305,32 @@ export async function main(argv: readonly string[]): Promise<number> {
     return 0
   }
 
+  const store = new SessionStore({ root: options.storeRoot })
+  const repository = new SessionRepository(store)
+
+  if (options.listSessions) {
+    const ids = await store.list()
+    console.log('persisted sessions:')
+    for (const id of ids) {
+      const report = await repository.inspect(id)
+      const open = report === undefined
+        ? 0
+        : report.interruptedToolCalls + report.interruptedSteps + report.interruptedTurns
+      console.log(`  ${id.padEnd(24)} ${open === 0 ? 'clean' : `${open} interrupted record(s)`}`)
+    }
+    return 0
+  }
+
+  // The verifier is independent and non-LLM: it needs no provider, so it runs
+  // before the API-key check.
+  if (options.verifySpec !== undefined) {
+    const spec = JSON.parse(await readFile(resolve(options.verifySpec), 'utf8')) as VerifySpec
+    const result = await verifyWorkspace({ ...spec, workspace: spec.workspace ?? options.cwd })
+    console.log(renderVerifyTable(result))
+    console.log(`\n${result.allPassed ? 'all checks passed' : `failed: ${result.failed.join(', ')}`}`)
+    return result.allPassed ? 0 : 1
+  }
+
   // A command-line endpoint and key override the provider's own settings.
   const configured = registry.settingsOf(options.provider)
   if (configured === undefined) {
@@ -290,6 +361,54 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
   const adapter = registry.create(options.provider)
   let toolCallCount = 0
+  // A session id makes the run durable: the log is persisted, and the same
+  // id resumes the stored log on the next run.
+  const sessionId = options.sessionId ?? `session-${Date.now().toString(16)}`
+
+  /** Run one task in a fresh child session, for a workflow branch. */
+  const runBranch = async (task: string): Promise<string> => {
+    const child = new Agent(adapter, toolRegistry, {
+      provider: adapter.provider,
+      model: options.model,
+      systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      ...options.temperature === undefined ? {} : { temperature: options.temperature },
+      stopConditions: options.stopConditions,
+      prune: options.prune,
+    }, `${sessionId}-branch-${Math.random().toString(16).slice(2, 8)}`)
+    const result = await child.run(task)
+    if (result.reason.kind === 'error') throw new Error(result.reason.message)
+    return result.text
+  }
+  // A workflow runs its branches concurrently and summarizes the survivors.
+  if (options.workflowSpec !== undefined) {
+    const spec = JSON.parse(await readFile(resolve(options.workflowSpec), 'utf8')) as {
+      branches: WorkflowBranch[]
+      fanIn?: string
+      limits?: { maxConcurrent?: number; maxTotal?: number; branchTimeoutMs?: number; runTimeoutMs?: number }
+    }
+    const outcome = await runWorkflow(spec.branches, async branch => await runBranch(branch.task), {
+      ...spec.fanIn === undefined ? {} : { fanIn: spec.fanIn },
+      summarize: async (task, survivors) => await runBranch(`${task}\n\n${survivors.join('\n')}`),
+      ...spec.limits === undefined ? {} : { limits: spec.limits },
+    })
+    if (outcome.kind === 'failed') {
+      console.error(`workflow failed (${outcome.fatal.kind}): ${outcome.fatal.message}`)
+      return 1
+    }
+    console.log(JSON.stringify({ parts: outcome.parts, summary: outcome.summary }, null, 2))
+    return 0
+  }
+
+  // A session id makes the run durable: the log is persisted, and the same
+  // id resumes the stored log on the next run.
+  const stored = await repository.resume(sessionId)
+  if (stored !== undefined && stored.repair.closers.length > 0) {
+    console.error(
+      `[resume] repaired ${stored.repair.interruptedToolCalls} tool call(s), `
+      + `${stored.repair.interruptedSteps} step(s), ${stored.repair.interruptedTurns} turn(s)`,
+    )
+  }
+
   const agent = new Agent(adapter, toolRegistry, {
     provider: adapter.provider,
     model: options.model,
@@ -297,6 +416,9 @@ export async function main(argv: readonly string[]): Promise<number> {
     ...options.temperature === undefined ? {} : { temperature: options.temperature },
     stopConditions: options.stopConditions,
     prune: options.prune,
+    // A resumed session continues the stored history, so the model still sees
+    // the earlier turns.
+    ...stored === undefined ? {} : { session: stored.session },
     onText: (text) => { process.stdout.write(text) },
     onToolCall: (name, args) => {
       toolCallCount += 1
@@ -309,7 +431,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     onStopped: (kind, message) => {
       console.error(`\n[stopped] ${kind}: ${message}`)
     },
-  })
+  }, sessionId)
 
   const runTask = async (task: string): Promise<void> => {
     console.error(`\n> ${task}`)
@@ -318,6 +440,9 @@ export async function main(argv: readonly string[]): Promise<number> {
     if (result.reason.kind === 'error') {
       console.error(`turn failed: ${result.reason.message}`)
     }
+    // The log is persisted after every turn, so a crash loses at most the
+    // turn in flight, which the repair closes on the next run.
+    await repository.save(agent.session, options.cwd)
   }
 
   if (options.task !== undefined) {

@@ -37,6 +37,13 @@ export interface AgentOptions {
   stopConditions?: StopConditionsConfig
   /** The character budgets that prune tool results in the derived request. */
   prune?: PruneConfig
+  /**
+   * An existing session to continue.
+   *
+   * The caller supplies one to resume a persisted log: the agent then writes
+   * into that session instead of creating a fresh one.
+   */
+  session?: Session
   /** Called for each streamed text delta, for live terminal output. */
   onText?: (text: string) => void
   /** Called when a tool call starts executing. */
@@ -85,7 +92,10 @@ export class Agent {
     this.registry = registry
     this.options = options
     this.limits = createStopConditions(options.stopConditions)
-    this.session = new Session(sessionId, resolvePruneConfig(options.prune))
+    const pruneConfig = resolvePruneConfig(options.prune)
+    // A supplied session keeps its own log, so a resumed run continues the
+    // stored history instead of starting over.
+    this.session = options.session ?? new Session(sessionId, pruneConfig)
   }
 
   /**

@@ -73,7 +73,7 @@ persistence backends. It is a companion deliverable for reading and
 extending, not part of the D5 acceptance run.
 
 ```bash
-# 70 behavior and wire-protocol tests; no network, no API key
+# 113 behavior and wire-protocol tests; no network, no API key
 ./mini-agent/tests/run-tests.sh
 
 # Run it against a provider
@@ -85,6 +85,18 @@ node --experimental-strip-types mini-agent/src/cli/main.ts \
 
 See [`mini-agent/README.md`](mini-agent/README.md) and
 [`mini-agent/docs/custom-model-api.md`](mini-agent/docs/custom-model-api.md).
+
+### Mini-agent versus D1–D4
+
+The mini-agent covers the D1–D4 capabilities in a smaller, self-contained form:
+
+| Day | Capability | mini-agent |
+| --- | --- | --- |
+| D1 | agent instructions, scoped precedence, minimal task | the system prompt and the built-in tools |
+| D2 | state, context, persistence | `core/persistence.ts`, `core/repository.ts`: an append-only JSONL log, resume, and crash repair that closes an interrupted call with an unknown outcome |
+| D3 | verification, reliability, human gate | `core/verify.ts`: an independent non-LLM Definition-of-Done verifier; `core/approval.ts`: a fail-closed approval gate |
+| D4 | loop, graph, automation | `core/workflow.ts`: fan-out / fan-in with the harness's failure semantics; `core/stop-conditions.ts`: per-turn caps |
+| — | context compaction | `core/prune.ts`: model-free tool-result pruning |
 
 ## Run
 

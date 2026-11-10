@@ -123,7 +123,7 @@ node --experimental-strip-types demos/day5/mini-agent/src/cli/main.ts \
 ```
 
 ```bash
-# 70 behavior and wire-protocol tests; no network, no API key
+# 113 behavior and wire-protocol tests; no network, no API key
 ./demos/day5/mini-agent/tests/run-tests.sh
 ```
 
@@ -140,6 +140,13 @@ Tool results are pruned to a character budget (`--prune-threshold`,
 `--prune-head`, `--prune-tail`), keeping the head and the tail and dropping
 the middle. The pass is model-free, so it costs no tokens, and the durable
 log keeps the full-fidelity result.
+
+A session can be persisted and resumed with `--session-id`: the log survives
+the process, and a log cut short by a crash is repaired on the next run with
+an explicit *unknown outcome* rather than an invented tool result.
+`--verify` runs an independent, non-LLM Definition-of-Done verifier against
+the workspace, and `--workflow` runs a fan-out / fan-in with the D4 failure
+semantics.
 
 See [`demos/day5/mini-agent/README.md`](demos/day5/mini-agent/README.md) and
 [`demos/day5/mini-agent/docs/custom-model-api.md`](demos/day5/mini-agent/docs/custom-model-api.md).
