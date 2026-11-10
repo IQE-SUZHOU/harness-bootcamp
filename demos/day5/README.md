@@ -73,7 +73,7 @@ persistence backends. It is a companion deliverable for reading and
 extending, not part of the D5 acceptance run.
 
 ```bash
-# 56 behavior and wire-protocol tests; no network, no API key
+# 70 behavior and wire-protocol tests; no network, no API key
 ./mini-agent/tests/run-tests.sh
 
 # Run it against a provider

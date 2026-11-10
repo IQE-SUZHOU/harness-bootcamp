@@ -15,6 +15,7 @@ import { ToolRegistry } from '../core/tools.ts'
 import { ProviderRegistry } from '../core/providers.ts'
 import { loadProviders, createAdapterFromSettings, expandEnv } from '../core/config.ts'
 import type { StopConditionsConfig } from '../core/stop-conditions.ts'
+import type { PruneConfig } from '../core/prune.ts'
 import { DEFAULT_MODEL } from '../llm/deepseek.ts'
 import { createBuiltinTools } from '../tools/builtin.ts'
 
@@ -44,6 +45,8 @@ interface CliOptions {
   temperature: number | undefined
   /** The limits that let a turn brake itself. */
   stopConditions: StopConditionsConfig
+  /** The character budgets that prune tool results in the derived request. */
+  prune: PruneConfig
   /** Whether to print the session log at the end. */
   showLog: boolean
   /** Whether to list the registered providers and exit. */
@@ -71,6 +74,17 @@ export function parseArgs(argv: readonly string[]): CliOptions {
       ...process.env.MINI_AGENT_MAX_TOTAL_TOKENS === undefined
         ? {}
         : { maxTotalTokens: Number(process.env.MINI_AGENT_MAX_TOTAL_TOKENS) },
+    },
+    prune: {
+      ...process.env.MINI_AGENT_PRUNE_THRESHOLD === undefined
+        ? {}
+        : { thresholdChars: Number(process.env.MINI_AGENT_PRUNE_THRESHOLD) },
+      ...process.env.MINI_AGENT_PRUNE_HEAD === undefined
+        ? {}
+        : { headChars: Number(process.env.MINI_AGENT_PRUNE_HEAD) },
+      ...process.env.MINI_AGENT_PRUNE_TAIL === undefined
+        ? {}
+        : { tailChars: Number(process.env.MINI_AGENT_PRUNE_TAIL) },
     },
     showLog: false,
     listProviders: false,
@@ -106,6 +120,15 @@ export function parseArgs(argv: readonly string[]): CliOptions {
         break
       case '--max-total-tokens':
         options.stopConditions.maxTotalTokens = Number(argv[++index])
+        break
+      case '--prune-threshold':
+        options.prune.thresholdChars = Number(argv[++index])
+        break
+      case '--prune-head':
+        options.prune.headChars = Number(argv[++index])
+        break
+      case '--prune-tail':
+        options.prune.tailChars = Number(argv[++index])
         break
       case '--api-key':
         options.apiKey = argv[++index] ?? options.apiKey
@@ -153,6 +176,9 @@ Options:
       --max-steps <n>    Stop the turn after this many model requests
       --timeout-ms <n>   Stop the turn after this many milliseconds
       --max-total-tokens <n>  Stop the turn after this many tokens
+      --prune-threshold <n>  Prune a tool result above this many characters
+      --prune-head <n>   Keep this many leading characters when pruning
+      --prune-tail <n>   Keep this many trailing characters when pruning
       --log             Print the session event log when finished
       --list-providers  List the registered provider routes and exit
   -h, --help            Show this help
@@ -165,7 +191,10 @@ Environment:
   MINI_AGENT_CONFIG     Optional path to a providers.json file
   MINI_AGENT_MAX_STEPS  Optional step cap
   MINI_AGENT_TIMEOUT_MS Optional turn deadline in milliseconds
-  MINI_AGENT_MAX_TOTAL_TOKENS  Optional token budget per turn`)
+  MINI_AGENT_MAX_TOTAL_TOKENS  Optional token budget per turn
+  MINI_AGENT_PRUNE_THRESHOLD   Optional tool-result pruning threshold
+  MINI_AGENT_PRUNE_HEAD        Optional leading characters kept when pruning
+  MINI_AGENT_PRUNE_TAIL        Optional trailing characters kept when pruning`)
 }
 
 /**
@@ -267,6 +296,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     ...options.temperature === undefined ? {} : { temperature: options.temperature },
     stopConditions: options.stopConditions,
+    prune: options.prune,
     onText: (text) => { process.stdout.write(text) },
     onToolCall: (name, args) => {
       toolCallCount += 1

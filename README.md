@@ -123,7 +123,7 @@ node --experimental-strip-types demos/day5/mini-agent/src/cli/main.ts \
 ```
 
 ```bash
-# 56 behavior and wire-protocol tests; no network, no API key
+# 70 behavior and wire-protocol tests; no network, no API key
 ./demos/day5/mini-agent/tests/run-tests.sh
 ```
 
@@ -135,6 +135,11 @@ Each turn is capped so a task that sends the model in circles cannot run
 forever: `--max-steps`, `--timeout-ms`, and `--max-total-tokens`. A tripped
 cap ends the turn with an explicit `stopped` reason recorded in the session
 log.
+
+Tool results are pruned to a character budget (`--prune-threshold`,
+`--prune-head`, `--prune-tail`), keeping the head and the tail and dropping
+the middle. The pass is model-free, so it costs no tokens, and the durable
+log keeps the full-fidelity result.
 
 See [`demos/day5/mini-agent/README.md`](demos/day5/mini-agent/README.md) and
 [`demos/day5/mini-agent/docs/custom-model-api.md`](demos/day5/mini-agent/docs/custom-model-api.md).

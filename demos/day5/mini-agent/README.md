@@ -80,6 +80,9 @@ For a protocol of your own, write one adapter class. See **[docs/custom-model-ap
 | `--max-steps <n>` | Stop the turn after this many model requests |
 | `--timeout-ms <n>` | Stop the turn after this many milliseconds |
 | `--max-total-tokens <n>` | Stop the turn after this many tokens |
+| `--prune-threshold <n>` | Prune a tool result above this many characters |
+| `--prune-head <n>` | Keep this many leading characters when pruning |
+| `--prune-tail <n>` | Keep this many trailing characters when pruning |
 | `--log` | Print the session event log when finished |
 | `--list-providers` | List the registered provider routes and exit |
 
@@ -100,6 +103,9 @@ For a protocol of your own, write one adapter class. See **[docs/custom-model-ap
 | `MINI_AGENT_MAX_STEPS` | Step cap for one turn |
 | `MINI_AGENT_TIMEOUT_MS` | Turn deadline in milliseconds |
 | `MINI_AGENT_MAX_TOTAL_TOKENS` | Token budget for one turn |
+| `MINI_AGENT_PRUNE_THRESHOLD` | Tool-result pruning threshold |
+| `MINI_AGENT_PRUNE_HEAD` | Leading characters kept when pruning |
+| `MINI_AGENT_PRUNE_TAIL` | Trailing characters kept when pruning |
 
 ## Built-in tools
 
@@ -124,6 +130,7 @@ src/
 │   ├── providers.ts Provider registry: name → adapter factory
 │   ├── config.ts    providers.json loading and adapter construction
 │   ├── stop-conditions.ts  Step, time, and token limits for one turn
+│   ├── prune.ts     Model-free tool-result pruning
 │   └── agent.ts     The turn/step loop
 ├── llm/
 │   ├── deepseek.ts  DeepSeek Messages API adapter (SSE streaming)
@@ -186,6 +193,49 @@ The CLI prints the same reason on stderr:
 
 An unset limit never trips, so a run without stop conditions behaves exactly as before. A non-positive limit is rejected when the agent is constructed, not silently ignored.
 
+### Tool-result pruning
+
+Tool output is the fastest-growing part of a context: one `read_file` on a big
+file can add tens of thousands of characters, and the agent re-sends the whole
+history on every request. **Pruning** keeps each tool result within a
+character budget by dropping its **middle** and keeping its head and tail, so
+the model still sees how the output began and ended.
+
+| Budget | Flag | Environment | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| Threshold | `--prune-threshold <n>` | `MINI_AGENT_PRUNE_THRESHOLD` | 8192 | prune a result above this many characters |
+| Head | `--prune-head <n>` | `MINI_AGENT_PRUNE_HEAD` | 4096 | leading characters kept |
+| Tail | `--prune-tail <n>` | `MINI_AGENT_PRUNE_TAIL` | 1024 | trailing characters kept |
+
+```sh
+node --experimental-strip-types src/cli/main.ts \
+  --prune-threshold 2000 --prune-head 800 --prune-tail 200 "task"
+```
+
+Three properties make this safe:
+
+- **Model-free.** Pruning costs no tokens and no extra request. It is
+  deterministic, so the same log always prunes to the same request.
+- **The durable log is never rewritten.** Pruning happens in the projection
+  from the log into the request, so the full-fidelity result stays in the log
+  and the session remains replayable.
+- **Slicing is by Unicode code point**, so a retained boundary never splits a
+  surrogate pair. The removed middle is replaced by one marker.
+
+A pruned result looks like this:
+
+```
+<the first 800 characters>
+
+[... tool result middle pruned ...]
+
+<the last 200 characters>
+```
+
+The emitted size is `head + marker + tail`, so that sum must fit inside the
+threshold; a configuration that cannot satisfy this is rejected at startup
+rather than silently mis-pruning.
+
 ### The session log is the source of truth
 
 Every event is appended to `Session` with a monotonic sequence number. The model request is derived from that log by `deriveMessages()`, never assembled ad hoc. Two consequences fall out of this:
@@ -213,7 +263,7 @@ The `ProviderRegistry` maps a provider *name* to an adapter factory, so the CLI 
 node --experimental-strip-types --test tests/*.test.ts
 ```
 
-56 tests cover the session projection, schema validation, block assembly, the turn/step loop (including tool failures and argument rejection), the stop conditions (step cap, deadline, and token budget, plus their boundaries), the built-in tools, the provider registry and config loading, the MiniMax request shape, `reasoning_content` handling, and tool calls split across chunks, and the full HTTP + SSE wire round trip against local mock servers for both the DeepSeek and OpenAI wire formats.
+70 tests cover the session projection, schema validation, block assembly, the turn/step loop (including tool failures and argument rejection), the stop conditions (step cap, deadline, and token budget, plus their boundaries), tool-result pruning (budgets, boundaries, surrogate pairs, idempotence, and log fidelity), the built-in tools, the provider registry and config loading, the MiniMax request shape, `reasoning_content` handling, and tool calls split across chunks, and the full HTTP + SSE wire round trip against local mock servers for both the DeepSeek and OpenAI wire formats.
 
 ## Using it as a library
 
@@ -247,17 +297,21 @@ console.log(result.reason, result.text)
 | `dsh-llm-deepseek` credential + config | `core/config.ts`, `core/providers.ts` |
 | `dsh-tool-bash` and friends | `tools/builtin.ts` |
 | `workflow-ptc` / `goal` stop conditions | `core/stop-conditions.ts` |
+| `dsh-compaction-tool-result-pruner` | `core/prune.ts` |
 | Cordis plugin runtime, GUI, persistence, SDK | *not included* |
 
 The wire protocol matches the harness's DeepSeek adapter: `POST {baseURL}/v1/messages` with an Anthropic-style Messages body, `x-api-key` authentication, and SSE streaming. The OpenAI adapter additionally covers the Chat Completions protocol the harness does not implement.
 
 The stop conditions cover the harness's per-turn caps in a simpler form: a step count, a deadline, and a token budget. The harness also caps concurrent agents and total agents across a workflow, and layers a goal round cap on top; the mini-agent has no workflow or goal layer, so those do not apply.
 
+Pruning follows the harness's `dsh-compaction-tool-result-pruner`: it keeps a tool result's head and tail, replaces the middle with a marker, slices by Unicode code point, and never rewrites the durable log. The harness's summarizer-based compaction is not included.
+
 ## Limitations
 
 - **Two protocols.** The DeepSeek Messages API and the OpenAI Chat Completions API. Other protocols need a new adapter.
 - **No persistence.** The session log lives in memory and is lost on exit; `--log` prints it for inspection.
 - **No sandbox.** The `bash` tool runs commands directly; the file tools are confined to the workspace root, but the shell is not.
-- **No compaction or context management.** Long conversations are sent in full.
+- **No context compaction.** Tool results are pruned, but the conversation itself is not summarized: a long exchange of short messages still grows without bound. The harness compacts with a summarizer model; the mini-agent does not.
+- **No context-window awareness.** The agent does not know how large the model's window is, so it cannot size its budgets automatically or pre-empt a `context_length_exceeded` error.
 - **No approval gate.** Every tool call runs without asking.
 - **Stop conditions are per turn.** A cap ends the current turn; it does not carry over to the next one, and the loop does not resume the unfinished task on its own.

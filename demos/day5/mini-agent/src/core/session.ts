@@ -9,6 +9,8 @@
  */
 
 import type { ContentBlock, Message, TokenUsage } from './types.ts'
+import { pruneToolResult, resolvePruneConfig } from './prune.ts'
+import type { ResolvedPruneConfig } from './prune.ts'
 
 /** One recorded session event. */
 export type SessionEvent =
@@ -51,9 +53,14 @@ export class Session {
   private readonly events: StoredEvent[] = []
   /** Cached projection of the derived request messages. */
   private derived: Message[] | undefined
+  /** The pruning budgets applied to the derived request. */
+  private readonly pruneConfig: ResolvedPruneConfig
+  /** The tool results pruned by the last projection, for reporting. */
+  private lastPruneCount = 0
 
-  constructor(id: string) {
+  constructor(id: string, pruneConfig?: ResolvedPruneConfig) {
     this.id = id
+    this.pruneConfig = pruneConfig ?? resolvePruneConfig()
   }
 
   /**
@@ -112,18 +119,34 @@ export class Session {
     }
     // Tool results follow their assistant message, in call order.
     const messages: Message[] = []
+    let pruned = 0
     for (const { message, callIds } of entries) {
       messages.push(message)
       for (const id of callIds) {
         const result = results.get(id)
         if (result === undefined) continue
+        // The durable log keeps the full result; the request carries the
+        // pruned one, so the session stays replayable at full fidelity.
+        const prunedResult = pruneToolResult(result.text, this.pruneConfig)
+        if (prunedResult.pruned) pruned += 1
         messages.push({
           role: 'tool',
-          content: [{ type: 'tool-result', id, isError: result.isError, text: result.text }],
+          content: [{
+            type: 'tool-result',
+            id,
+            isError: result.isError,
+            text: prunedResult.text,
+          }],
         })
       }
     }
+    this.lastPruneCount = pruned
     this.derived = messages
     return messages
+  }
+
+  /** The number of tool results pruned by the last projection. */
+  get prunedToolResults(): number {
+    return this.lastPruneCount
   }
 }

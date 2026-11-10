@@ -14,6 +14,8 @@ import { Session } from './session.ts'
 import type { TurnEndReason } from './session.ts'
 import { createStopConditions } from './stop-conditions.ts'
 import type { StopConditions, StopConditionsConfig } from './stop-conditions.ts'
+import { resolvePruneConfig } from './prune.ts'
+import type { PruneConfig } from './prune.ts'
 import { ToolRegistry, validateAgainstSchema } from './tools.ts'
 import type { ContentBlock, GenerateOptions, Message } from './types.ts'
 
@@ -33,6 +35,8 @@ export interface AgentOptions {
   maxParallelToolCalls?: number
   /** The limits that let a turn brake itself. */
   stopConditions?: StopConditionsConfig
+  /** The character budgets that prune tool results in the derived request. */
+  prune?: PruneConfig
   /** Called for each streamed text delta, for live terminal output. */
   onText?: (text: string) => void
   /** Called when a tool call starts executing. */
@@ -81,7 +85,7 @@ export class Agent {
     this.registry = registry
     this.options = options
     this.limits = createStopConditions(options.stopConditions)
-    this.session = new Session(sessionId)
+    this.session = new Session(sessionId, resolvePruneConfig(options.prune))
   }
 
   /**
