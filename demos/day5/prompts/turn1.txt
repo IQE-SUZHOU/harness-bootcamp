@@ -1,0 +1,16 @@
+你是 WCF 小组的 super-agent Lead。本轮只建立 Team 任务板、加载 skill、并把上一轮的上下文种子写入会话；严格按顺序执行，不要重试，不要改用其他工具，不要读取或修改文件。
+
+1) 调用 skill 工具加载名为 "d5-super-agent" 的 skill，确认返回内容包含 Marker。
+2) 依次调用 team_task_create 创建 6 个任务，每次使用上一次返回的任务 id：
+   - subject="harness-foundation"，description="D1: prove AGENTS.md is injected and the profile is plugin-composed."
+   - subject="state-context"，description="D2: prove one durable session log spans four resumed turns."
+   - subject="verification"，description="D3: run verify/static.sh and prove executable DoD."
+   - subject="loop-graph"，description="D4: run the fan-out/fan-in workflow under stop conditions."
+   - subject="integration"，description="D5: assessment log and six-line teach-back."，blocked_by 填前四个任务的 id。
+   - subject="cas-proof"，description="Team compare-and-set proof: a stale claim must fail."
+3) 用 team_task_get 读取第 1 个任务（harness-foundation）的最新 revision；用 team_task_update action="claim" 认领，再用返回的新 revision action="complete" 完成它。
+4) 用 team_task_get 读取第 6 个任务（cas-proof）的最新 revision；用 team_task_update action="claim" 认领它，但**不要 complete**，保持 in_progress，供下一步的陈旧 revision 对照使用。
+5) 最后原样输出下面这一行，作为上下文种子：
+INTEGRATION_TOKEN=SA-WCF-D5-7F3A
+
+完成后立即结束。

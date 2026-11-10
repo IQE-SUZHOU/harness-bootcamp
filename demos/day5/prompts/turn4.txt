@@ -1,0 +1,15 @@
+继续同一个 Team，完成 D5 交付。严格按顺序执行，不要重试，不要虚构证据。
+
+1) 再次调用 skill 工具加载 "d5-super-agent"。
+2) 用 team_task_list 读取最终任务板；用 list_agents 读取成员列表。若有任务仍未 completed，不要伪造完成，直接在最终回答中报告。
+3) 用 read 工具读取当前目录下的 teachback.md 和 dod.md。
+4) 不要写任何文件；assessment log 由 demo 从 team/task 事件与会话日志确定性生成，你只负责核对任务板与下方六行。
+5) 最后只输出以下六行 teach-back（不要额外段落，不要代码围栏）：
+Harness: <一句可证伪的断言> | Evidence: <seq/文件/配置>
+State: <一句可证伪的断言> | Evidence: <seq/文件/配置>
+Context: <一句可证伪的断言> | Evidence: <seq/文件/配置>
+Verification: <一句可证伪的断言> | Evidence: <seq/文件/配置>
+Loop: <一句可证伪的断言> | Evidence: <seq/文件/配置>
+Graph: <一句可证伪的断言> | Evidence: <seq/文件/配置>
+
+每行必须给出具体证据（session seq、task revision 或文件路径），不要泛泛而谈。完成后结束。

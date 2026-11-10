@@ -1,0 +1,7 @@
+{
+  "provider": "spawn",
+  "maxConcurrentAgents": 2,
+  "maxTotalAgents": 10,
+  "maxItemsPerCall": 8,
+  "syncTimeoutMs": 3000
+}

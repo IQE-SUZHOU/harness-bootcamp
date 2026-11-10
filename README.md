@@ -1,7 +1,7 @@
 # harness-bootcamp · WCF
 
 Agent-ready practice repository for the DeepSeek Harness bootcamp. This branch
-(`WCF`) holds the daily deliverables for D1–D4.
+(`WCF`) holds the daily deliverables for D1–D5.
 
 ## Quick start
 
@@ -25,6 +25,7 @@ practice repo ok: <absolute path>
 | D2 · State / Context / Persistence | Interrupt → resume demo with a real hard kill | `./demos/day2/interrupt-resume-demo.sh` |
 | D3 · Verification / Reliability | Definition of Done, maker-checker loop, human gate | `./demos/day3/maker-checker-demo.sh` |
 | D4 · Loop / Graph / Automation | Three-way fan-out/fan-in, stop conditions, failure propagation | `./demos/day4/loop-graph-demo.sh` |
+| D5 · Integration / Super-agent | Team task board, fork/fresh context, skill, assessment log | `./demos/day5/super-agent-demo.sh` |
 
 ## D2 demo
 
@@ -83,6 +84,28 @@ routing explanation, failure semantics, and goal layering. A sanitized snapshot
 of one passing run is in
 [`demos/day4/evidence/`](demos/day4/evidence/).
 
+## D5 demo
+
+The D5 demo drives one root session across four resumed turns. The Lead loads
+the `d5-super-agent` skill from `.dsh/skills/`, creates a six-task Team board,
+and seeds a token. It then spawns a fork auditor that sees the completed turns, a
+fresh checker that must run `verify/static.sh`, a fresh worker that must answer
+`UNKNOWN`, and a stale compare-and-set probe that must be rejected. The last two
+turns run the D4 fan-out/fan-in workflow under the committed stop conditions,
+complete the blocked integration task, and emit six falsifiable teach-back
+lines. The assessment log is derived from the session log and Team board, not
+from a self-report.
+
+```bash
+./demos/day5/super-agent-demo.sh
+```
+
+Output goes to `d5-artifacts/` (git-ignored). See
+[`demos/day5/README.md`](demos/day5/README.md) for the fork/fresh contract, the
+experimental Team package note, the V1–V17 table, and the assessment format. A
+sanitized snapshot of one passing run is in
+[`demos/day5/evidence/`](demos/day5/evidence/).
+
 ## Files
 
 | Path | Purpose |
@@ -95,9 +118,11 @@ of one passing run is in
 | `demos/day2/` | D2 interrupt → resume demo, analysis tools, and evidence |
 | `demos/day3/` | D3 maker-checker demo, DoD verifier, fixture, and evidence |
 | `demos/day4/` | D4 fan-out/fan-in demo, stop-condition overlays, verifier, and evidence |
+| `demos/day5/` | D5 Team, fork/fresh, skill, assessment log, verifier, and evidence |
+| `.dsh/skills/d5-super-agent/` | Project skill loaded by the D5 demo |
 
 ## Scope
 
-All source changes stay inside this repository. The D2, D3, and D4 demos
+All source changes stay inside this repository. The D2, D3, D4, and D5 demos
 additionally write `dsh` session state under `$DSH_HOME/sessions/` (default
 `~/.dsh/sessions/`), because that is where the runtime persists sessions.

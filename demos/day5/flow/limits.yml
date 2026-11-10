@@ -1,0 +1,10 @@
+- id: workflow-ptc
+  config:
+    provider: spawn
+    maxConcurrentAgents: 2
+    maxTotalAgents: 10
+    maxItemsPerCall: 8
+    syncTimeoutMs: 3000
+- id: goal
+  config:
+    defaultMaxGoalRounds: 20

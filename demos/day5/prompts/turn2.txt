@@ -1,0 +1,11 @@
+继续同一个 Team。本轮验证 Team 任务板、fork / fresh 上下文继承和 compare-and-set；严格按顺序执行，不要重试失败的 CAS。
+
+1) spawn_teammate：name="fork-auditor"，context="fork"，description="state/context auditor"，prompt="你在继承的对话历史里能看到 Lead 的已完成轮次。请依次执行：a) 只回答你看到的 INTEGRATION_TOKEN 值；b) 用 team_task_get 读取 task-2（state-context）的最新 revision，用 team_task_update action=\"claim\" 认领，再用新 revision action=\"complete\" 完成；c) 报告 token、每次 update 的 revision 和最终状态。不要修改文件，不要重试，回答后立即结束。"
+2) spawn_teammate：name="carol"，context="fresh"，description="verification checker"，prompt="请依次执行：a) 在 cwd 下用 bash 工具运行命令 ./verify/static.sh；b) 只有 stdout 中出现 d5 static checks passed 时，才用 team_task_get 读取 task-3（verification）的最新 revision，claim 后用新 revision complete；c) 报告 stdout 原文、每次 update 的 revision 和最终状态；若检查失败就不要 complete。不要重试，回答后立即结束。"
+3) spawn_teammate：name="fresh-worker"，context="fresh"，description="empty-context probe"，prompt="只回答你看到的 INTEGRATION_TOKEN 值；如果不知道就只回答 UNKNOWN。不要调用任何工具，回答后立即结束。"
+4) spawn_teammate：name="bob"，context="fresh"，description="stale CAS probe"，prompt="只调用一次 team_task_update：task_id=\"task-6\"，expected_revision=1，action=\"claim\"。不要调用 team_task_get，不要重试。把工具返回的完整错误原样报告后立即结束。"
+5) 用 list_agents 确认四个成员都存在；然后用 wait_agent 等待它们结束。若返回 noProgress，先 list_agents，再最多继续 wait_agent 五次（每次 timeout_ms=60000），直到四者都不再 running。
+6) 用 team_task_get 读取 task-6（cas-proof）的最新 revision，确认它仍为 2（Bob 的陈旧更新未生效）；用 revision 2 执行 action="complete"。
+7) 最后输出五段原始结果：fork-auditor 的 token 与 task-2 最终 revision；carol 的 stdout 与 task-3 最终 revision；fresh-worker 的原始回答；bob 的原始错误；task-6 的最终 revision。
+
+完成后立即结束。

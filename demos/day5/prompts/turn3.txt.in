@@ -1,0 +1,11 @@
+继续同一个 Team。本轮运行 D4 图式编排并收束任务板；严格按顺序执行，不要重试 workflow，不要修改脚本。
+
+1) 调用 workflow 工具。meta 与 script 必须逐字使用下面的内容（不要改写、不要省略、不要拆分；args 省略）：
+meta={"name":"fanout-fanin","description":"three-way fan-out then one fan-in summary"}
+script:
+@@WORKFLOW_SCRIPT@@
+2) 用 team_task_get 读取 task-4（loop-graph）的最新 revision；用 team_task_update action="claim" 认领，再用新 revision action="complete" 完成。
+3) 用 team_task_list 确认 task-1 到 task-4 都是 completed；用 team_task_get 读取 task-5（integration）的最新 revision，用 action="claim" 认领，再用新 revision action="complete" 完成（它必须已经 ready）。
+4) 最后输出 workflow 返回值的 count 字段，以及 task-5 的最终 revision。
+
+完成后立即结束。
